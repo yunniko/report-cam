@@ -2,6 +2,10 @@ package cz.julienika.reportcam.review
 
 import cz.julienika.reportcam.camera.CapturedJpeg
 import cz.julienika.reportcam.photo.AspectRatio
+import cz.julienika.reportcam.stamp.GeoFix
+import cz.julienika.reportcam.stamp.LocationReading
+import cz.julienika.reportcam.stamp.Place
+import cz.julienika.reportcam.stamp.SchemeId
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -77,30 +81,46 @@ class PendingStoreTest {
         assertEquals("second", m.userText)
     }
 
+    private val facts =
+        StampFacts(
+            captureTime = meta.captureTime,
+            userText = "Stavba č. 4 – kontrola",
+            location = LocationReading.Fix(GeoFix(50.08765, 14.42133, 4.5f, 1_762_173_527_000, coarseOnly = false)),
+            place = Place(street = "Karlova", houseNumber = "12", city = "Praha", fullAddress = null),
+        )
+
     private val ready =
         ReadyMeta(
             fileName = "report_20261103_133847_123.jpg",
-            captureTime = meta.captureTime,
             caption = "Stavba č. 4 – kontrola\nupraveno",
             captionOn = false,
             saved = true,
+            scheme = SchemeId.LIGHT,
+            rotationDegrees = 90,
+            outputLongEdge = 1280,
+            aspect = AspectRatio.R4_5,
+            facts = facts,
         )
+
+    private val source = CapturedJpeg(ByteArray(3_000) { (it % 7).toByte() }, 90)
 
     private fun stampedFile() = tmp.newFile().apply { writeBytes(bytes) }
 
     @Test
     fun aStampedPhotoComesBackWithItsCaptionAndFlags() {
-        store().saveReady(stampedFile(), ready)
-        val (file, m) = store().loadReady()!!
-        assertArrayEquals(bytes, file.readBytes())
-        assertEquals(ready, m)
+        store().saveReady(stampedFile(), source, ready)
+        val kept = store().loadReady()!!
+        assertArrayEquals(bytes, kept.stamped.readBytes())
+        assertArrayEquals(source.bytes, kept.source.bytes)
+        assertEquals(90, kept.source.rotationDegrees)
+        assertEquals(ready, kept.meta)
     }
 
     @Test
     fun keepingTheStampedPhotoDropsTheWaitingOne() {
         val s = store()
         s.save(CapturedJpeg(bytes, 0), meta)
-        s.saveReady(stampedFile(), ready)
+        s.saveReady(stampedFile(), source, ready)
         assertFalse(s.hasWaiting())
         assertNull(s.load())
         assertTrue(s.hasReady())
@@ -111,18 +131,18 @@ class PendingStoreTest {
         val s = store()
         s.updateReady(ready)
         assertFalse("no photo, nothing to update", s.exists())
-        s.saveReady(stampedFile(), ready)
+        s.saveReady(stampedFile(), source, ready)
         s.updateReady(ready.copy(caption = "jiný text", captionOn = true, saved = false))
-        assertEquals(ready.copy(caption = "jiný text", captionOn = true, saved = false), store().loadReady()!!.second)
+        assertEquals(ready.copy(caption = "jiný text", captionOn = true, saved = false), store().loadReady()!!.meta)
     }
 
     @Test
     fun aNewWaitingPhotoOrClearDropsTheStampedOne() {
         val s = store()
-        s.saveReady(stampedFile(), ready)
+        s.saveReady(stampedFile(), source, ready)
         s.save(CapturedJpeg(bytes, 0), meta)
         assertFalse(s.hasReady())
-        s.saveReady(stampedFile(), ready)
+        s.saveReady(stampedFile(), source, ready)
         s.clear()
         assertFalse(s.exists())
     }
@@ -130,8 +150,43 @@ class PendingStoreTest {
     @Test
     fun aStampedEntryNamingAPathIsDropped() {
         val s = store()
-        s.saveReady(stampedFile(), ready.copy(fileName = "../../shared_prefs/x.xml"))
+        s.saveReady(stampedFile(), source, ready.copy(fileName = "../../shared_prefs/x.xml"))
         assertNull(s.loadReady())
         assertFalse(s.exists())
+    }
+
+    @Test
+    fun factsWithoutLocationOrPlaceRoundTrip() {
+        for (location in listOf(null, LocationReading.None)) {
+            val m = ready.copy(facts = facts.copy(userText = null, location = location, place = null))
+            store().saveReady(stampedFile(), source, m)
+            assertEquals(m, store().loadReady()!!.meta)
+        }
+        assertEquals(facts, StampFacts.of(facts.toStampData()))
+    }
+
+    @Test
+    fun aRestampReplacesTheFileAndStateButKeepsTheSource() {
+        val s = store()
+        s.replaceStamped(stampedFile(), ready)
+        assertFalse("nothing kept, nothing to replace", s.exists())
+        s.saveReady(stampedFile(), source, ready)
+        val redrawn = tmp.newFile().apply { writeBytes(byteArrayOf(9, 9, 9)) }
+        s.replaceStamped(redrawn, ready.copy(fileName = "report_20261103_133847_123_dark.jpg", scheme = SchemeId.DARK, saved = false))
+        val kept = store().loadReady()!!
+        assertArrayEquals(byteArrayOf(9, 9, 9), kept.stamped.readBytes())
+        assertArrayEquals(source.bytes, kept.source.bytes)
+        assertEquals(SchemeId.DARK, kept.meta.scheme)
+        assertFalse(kept.meta.saved)
+    }
+
+    @Test
+    fun aStampedEntryFromBeforeSchemesIsDroppedNotHalfRestored() {
+        val dir = File(tmp.root, "pending").apply { mkdirs() }
+        File(dir, "stamped.jpg").writeBytes(bytes)
+        File(dir, "source.jpg").writeBytes(bytes)
+        File(dir, "ready.properties").writeText("file=report.jpg\ncapture_time=2026-11-03T13:38:47+01:00\ncaption=x\ncaption_on=true\nsaved=false\n")
+        assertNull(store().loadReady())
+        assertFalse(store().exists())
     }
 }

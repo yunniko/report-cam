@@ -38,7 +38,9 @@
     <string name="pref_cat_look">Look</string>
     <string name="pref_placement">Stamp position</string>
     <string name="pref_text_size">Text size</string>
-    <string name="pref_colors">Colours</string>
+    <string name="pref_scheme">Stamp colours</string>
+    <string name="pref_show_weekday">Day of the week</string>
+    <string name="pref_show_weekday_summary">The short day name before the date, in the phone\'s language.</string>
     <string name="pref_frame_border">Frame border</string>
     <string name="pref_frame_border_summary">%s. Frame positions only: a border around the other edges of the photo.</string>
 
@@ -142,15 +144,13 @@
         <item>large</item>
     </string-array>
 
-    <string-array name="colors_labels">
-        <item>White on dark</item>
-        <item>Black on light</item>
-        <item>Yellow on dark</item>
+    <string-array name="scheme_labels">
+        <item>Dark</item>
+        <item>Light</item>
     </string-array>
-    <string-array name="colors_values" translatable="false">
-        <item>light_on_dark</item>
-        <item>dark_on_light</item>
-        <item>yellow_on_dark</item>
+    <string-array name="scheme_values" translatable="false">
+        <item>dark</item>
+        <item>light</item>
     </string-array>
 
     <string-array name="output_size_labels">

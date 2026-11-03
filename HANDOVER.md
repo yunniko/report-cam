@@ -5,16 +5,22 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 ## Current state
 
-G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen) is done,
-M2–M4 remain. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
+G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen) and M2 (stamp
+schemes, weekday) are done, M3–M4 remain. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1): caption switch (starts at the Settings value) and editable caption; up to three quick
   messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
   Save to gallery. Only installed messengers show. Seen on the emulator with stand-in apps (`stub-messenger/`) for
   1 left, 1 right, 2 and 3 buttons; the WhatsApp stand-in received the photo and the caption.
+- Stamp schemes (G-003 M2): dark (default: white on 60 % black) and light (black on 70 % white), each with its
+  own background, text colour and overlay opacity (20–100 %, a frame is always opaque); the old three-way colour
+  setting carries over once. The review screen's Dark/Light buttons, each drawn in its scheme's colours, restamp
+  from the kept camera JPEG into `report_<time>_<scheme>.jpg` (D019); the new version is unsaved, so Save adds one
+  copy of it and the earlier copy stays. Seen on the emulator; colours are not yet editable (M3).
+- Day of the week (D018): off by default; when on, the short day name in the phone's language precedes the date.
 - Gallery (D017): at most one copy in `Pictures/Report Cam`, on the first send when "Save to gallery when sent" is on,
   or by the Save button; a retake without sending leaves none.
-- A stamped, unsent photo is kept on disk with caption, switch and saved flag (D015) and came back after
+- A stamped, unsent photo is kept on disk with its camera JPEG, stamp facts, scheme, caption, switch and saved flag (D015) and came back after
   `am force-stop`; sending, Retake or a new shot drops it.
 - Photo shape (D009): full frame, 1:1, 4:5, 2:3 or 9:16, short:long following how the phone is held; centre-cropped
   before stamping. The preview shows the whole sensor frame and dims what the crop will cut away.
@@ -39,8 +45,8 @@ M2–M4 remain. State on the Pixel 3a API 34 emulator at the commit above (debug
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 116 unit, 25 instrumented (shoot → review → share; deferred location through mock providers, including
-  restart; square crop; the real geocoder, skipped offline; caption, one-copy rule and stamped-photo restore). The emulator camera currently runs at about
+- Tests: 130 unit, 27 instrumented (shoot → review → share; deferred location through mock providers, including
+  restart; square crop; the real geocoder, skipped offline; caption, one-copy rule, stamped-photo restore, restamp and its restore). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Release build 0.2.2 (code 5): signed with the D007 key, 1.43 MB, sent to the Owner.
   `scripts/camera-release-check.sh` on 0.2.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
@@ -57,7 +63,7 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
   so no Activity launch sits between the shutter and sending. `review/ReviewScreen` owns the review half
   (Restoring / Waiting / Stamping / Ready, a generation counter drops stamps for abandoned photos);
   `PendingLocation` holds its pure rules, `ShareButtons` the quick-button layout rule, and `PendingStore` the on-disk
-  copy in `filesDir/pending`: a waiting photo or a stamped one with its ready entry, never both;
+  copy in `filesDir/pending`: a waiting photo, or a stamped one with its source JPEG and ready entry (`review/ReadyMeta`), never both;
   `location/PlaceLookup` the geocoder call made inside the stamp step.
   Settings is a separate AppCompat activity.
 - `camera/CameraSession` owns CameraX: open in `onStart`, close in `onStop` and after every capture (D003).
@@ -71,6 +77,7 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
   `ExifWriter` then adds `PhotoMetadata` (D006); `GallerySaver` copies to MediaStore.
 - Both activities call `enableEdgeToEdge` on every Android version (15+ enforces it) and place their bars
   from window insets; Settings has its own toolbar in `activity_settings.xml` for that reason.
+- `stamp/StampScheme` holds the scheme colours, palettes and defaults; `AppSettings.withScheme` swaps one in.
 - `settings/AppSettings` maps stored preferences to what the app uses; keys and defaults live in `Keys`.
 - `share/Sharing` builds the send intent through the FileProvider; `SharedFiles` prunes copies after 24 h;
   `share/Messenger` lists the quick messengers and their packages, which the manifest's `<queries>` must also name.
@@ -95,8 +102,8 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
 
 ## Next steps and open questions
 
-- G-003 M2: dark and light stamp schemes, the review switch that restamps (a restamp clears the saved flag),
-  day of the week in the date. Then M3 (settings redesign) and M4 (verification, release 0.3.0).
+- G-003 M3: settings redesign, the colour dialog with both previews, quick-messenger picker, accuracy threshold,
+  app theme. Then M4 (verification, release 0.3.0).
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

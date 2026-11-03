@@ -48,6 +48,7 @@ import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.LocationTracker
 import cz.julienika.reportcam.photo.PhotoPipeline
 import cz.julienika.reportcam.review.PendingMeta
+import cz.julienika.reportcam.review.PhotoSource
 import cz.julienika.reportcam.review.PendingStore
 import cz.julienika.reportcam.review.ReviewScreen
 import cz.julienika.reportcam.settings.AppSettings
@@ -363,8 +364,8 @@ class CameraActivity : ComponentActivity() {
                     pendingStore.clear() // a photo that cannot be decoded would fail again on restore
                     if (hasCameraPermission()) openCamera()
                 }
-                waitForFix -> review.waitForLocation(base, data, s)
-                else -> review.stampNow(base, data, s)
+                waitForFix -> review.waitForLocation(PhotoSource(jpeg, s.outputLongEdge, s.aspect), base, data, s)
+                else -> review.stampNow(PhotoSource(jpeg, s.outputLongEdge, s.aspect), base, data, s)
             }
         }
     }

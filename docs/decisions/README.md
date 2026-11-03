@@ -17,3 +17,5 @@
 - D015 — A stamped, unsent photo is kept on disk with its caption state — active
 - D016 — A single quick messenger sits left of Share by default — active
 - D017 — The gallery gets at most one copy, saved on send or by the Save button — active
+- D018 — The day of the week is off by default and prints before the date — active
+- D019 — A restamp redraws from the kept camera JPEG into a new, suffixed file — active

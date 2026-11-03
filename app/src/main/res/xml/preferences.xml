@@ -22,6 +22,13 @@
             app:key="datetime_pattern"
             app:title="@string/pref_datetime_pattern"
             app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:dependency="show_datetime"
+            app:iconSpaceReserved="false"
+            app:key="show_weekday"
+            app:summary="@string/pref_show_weekday_summary"
+            app:title="@string/pref_show_weekday" />
     </PreferenceCategory>
 
     <PreferenceCategory
@@ -91,12 +98,12 @@
             app:title="@string/pref_text_size"
             app:useSimpleSummaryProvider="true" />
         <ListPreference
-            app:defaultValue="light_on_dark"
-            app:entries="@array/colors_labels"
-            app:entryValues="@array/colors_values"
+            app:defaultValue="dark"
+            app:entries="@array/scheme_labels"
+            app:entryValues="@array/scheme_values"
             app:iconSpaceReserved="false"
-            app:key="colors"
-            app:title="@string/pref_colors"
+            app:key="stamp_scheme"
+            app:title="@string/pref_scheme"
             app:useSimpleSummaryProvider="true" />
         <ListPreference
             app:defaultValue="medium"

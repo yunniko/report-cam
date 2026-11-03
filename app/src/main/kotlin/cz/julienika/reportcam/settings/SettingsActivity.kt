@@ -56,6 +56,10 @@ class SettingsActivity : AppCompatActivity() {
             savedInstanceState: Bundle?,
             rootKey: String?,
         ) {
+            val prefs = preferenceManager.sharedPreferences!!
+            AppSettings.legacySeed(PrefsSource(prefs)).takeIf { it.isNotEmpty() }?.let { seed ->
+                prefs.edit().apply { seed.forEach { (k, v) -> putString(k, v) } }.apply()
+            }
             setPreferencesFromResource(R.xml.preferences, rootKey)
             findPreference<Preference>(KEY_PERMISSION)?.setOnPreferenceClickListener {
                 permissions.resolve(LocationTracker(requireContext()).access())

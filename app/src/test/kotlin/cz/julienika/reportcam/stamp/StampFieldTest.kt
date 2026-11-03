@@ -25,7 +25,7 @@ class StampFieldTest {
 
     @Test
     fun dateTimeUsesPatternAndCaptureTime() {
-        val f = DateTimeField("yyyy-MM-dd HH:mm:ss", Locale.ROOT)
+        val f = DateTimeField("yyyy-MM-dd HH:mm:ss", locale = Locale.ROOT)
         assertEquals(listOf("2026-11-03 14:05:09"), f.lines(dataWith(null)))
     }
 
@@ -92,5 +92,14 @@ class StampFieldTest {
         assertTrue(q.precise)
         assertFalse(FixQuality.of(GeoFix(0.0, 0.0, null, now), now).precise)
         assertTrue(FixQuality.of(GeoFix(0.0, 0.0, 5f, now - FixQuality.STALE_AFTER_MS - 1), now).stale)
+    }
+
+    @Test
+    fun theWeekdayIsTheShortDayNameInTheGivenLanguageAndNeverTwice() {
+        val data = StampData.EMPTY.with(StampKeys.CAPTURE_TIME, java.time.ZonedDateTime.parse("2026-11-03T13:38:47+01:00[Europe/Prague]"))
+        assertEquals(listOf("Tue 2026-11-03"), DateTimeField("yyyy-MM-dd", weekday = true, locale = Locale.ENGLISH).lines(data))
+        assertEquals(listOf("út 2026-11-03"), DateTimeField("yyyy-MM-dd", weekday = true, locale = Locale.forLanguageTag("cs")).lines(data))
+        assertEquals(listOf("Tue 3.11."), DateTimeField("EEE d.M.", weekday = true, locale = Locale.ENGLISH).lines(data))
+        assertEquals(listOf("Tue Event 3.11."), DateTimeField("'Event' d.M.", weekday = true, locale = Locale.ENGLISH).lines(data))
     }
 }

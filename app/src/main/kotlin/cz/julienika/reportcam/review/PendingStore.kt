@@ -46,48 +46,12 @@ data class PendingMeta(
     }
 }
 
-/** A stamped photo under review that was not sent yet: what the review screen showed for it. */
-data class ReadyMeta(
-    /** The shared file's name, so the restored copy is the same file a messenger would get. */
-    val fileName: String,
-    val captureTime: ZonedDateTime,
-    /** The caption text as the user left it, edits included. */
-    val caption: String,
-    val captionOn: Boolean,
-    /** True once this version is in the gallery: Save and send-time saving then add no second copy. */
-    val saved: Boolean,
-) {
-    fun toProperties() =
-        Properties().apply {
-            setProperty(FILE, fileName)
-            setProperty(TIME, captureTime.toString())
-            setProperty(CAPTION, caption)
-            setProperty(CAPTION_ON, captionOn.toString())
-            setProperty(SAVED, saved.toString())
-        }
-
-    companion object {
-        private const val FILE = "file"
-        private const val TIME = "capture_time"
-        private const val CAPTION = "caption"
-        private const val CAPTION_ON = "caption_on"
-        private const val SAVED = "saved"
-
-        fun fromProperties(p: Properties): ReadyMeta? =
-            runCatching {
-                val file = p.getProperty(FILE)
-                // A name only, never a path: it is resolved inside the shared folder on restore.
-                require(!file.isNullOrBlank() && File(file).name == file)
-                ReadyMeta(
-                    fileName = file,
-                    captureTime = ZonedDateTime.parse(p.getProperty(TIME)),
-                    caption = p.getProperty(CAPTION) ?: "",
-                    captionOn = p.getProperty(CAPTION_ON).toBooleanStrict(),
-                    saved = p.getProperty(SAVED).toBooleanStrict(),
-                )
-            }.getOrNull()
-    }
-}
+/** The kept stamped photo, the camera JPEG it was drawn from, and its review state. */
+class KeptReady(
+    val stamped: File,
+    val source: CapturedJpeg,
+    val meta: ReadyMeta,
+)
 
 /**
  * Keeps the one photo under review in app-private storage, so leaving the app or a restart does not lose
@@ -102,6 +66,7 @@ class PendingStore(
     private val meta get() = File(dir, "meta.properties")
     private val stamped get() = File(dir, "stamped.jpg")
     private val ready get() = File(dir, "ready.properties")
+    private val source get() = File(dir, "source.jpg")
 
     /** Cheap enough for the main thread: a few file checks. Every method holds the store's lock. */
     @Synchronized
@@ -111,7 +76,7 @@ class PendingStore(
     fun hasWaiting(): Boolean = meta.isFile && photo.isFile
 
     @Synchronized
-    fun hasReady(): Boolean = ready.isFile && stamped.isFile
+    fun hasReady(): Boolean = ready.isFile && stamped.isFile && source.isFile
 
     /** Writes the photo, then the metadata last via a rename, so a save cut short never looks complete. */
     @Synchronized
@@ -139,22 +104,36 @@ class PendingStore(
     }
 
     /**
-     * Keeps [file] as the stamped photo under review, then drops the waiting entry: a stop in between
-     * leaves both, and the stamped one wins on restore. Nothing is written unless [still] holds, checked
-     * under the lock, so a photo the user dropped meanwhile is never kept.
+     * Keeps [file] as the stamped photo under review, with the camera JPEG it was drawn from, then drops
+     * the waiting entry: a stop in between leaves both, and the stamped one wins on restore. Nothing is
+     * written unless [still] holds, checked under the lock, so a photo the user dropped meanwhile is never kept.
      */
     @Synchronized
     fun saveReady(
         file: File,
+        jpeg: CapturedJpeg,
         m: ReadyMeta,
         still: () -> Boolean = { true },
     ) {
         if (!still()) return
         clearReady()
         dir.mkdirs()
+        source.writeBytes(jpeg.bytes)
         file.copyTo(stamped, overwrite = true)
         writeReady(m)
         clearWaiting()
+    }
+
+    /** The same photo stamped again (the other scheme): its new file and state; the source stays. */
+    @Synchronized
+    fun replaceStamped(
+        file: File,
+        m: ReadyMeta,
+        still: () -> Boolean = { true },
+    ) {
+        if (!still() || !hasReady()) return
+        file.copyTo(stamped, overwrite = true)
+        writeReady(m)
     }
 
     /** New caption, switch or saved flag for the stamped photo already kept; nothing when there is none. */
@@ -166,16 +145,16 @@ class PendingStore(
         if (still() && stamped.isFile) writeReady(m)
     }
 
-    /** The kept stamped file and its state; a broken entry is dropped. */
+    /** The kept stamped file, its source and its state; a broken entry is dropped. */
     @Synchronized
-    fun loadReady(): Pair<File, ReadyMeta>? {
+    fun loadReady(): KeptReady? {
         if (!hasReady()) return null
         val m = readProperties(ready)?.let(ReadyMeta::fromProperties)
         if (m == null) {
             clearReady()
             return null
         }
-        return stamped to m
+        return KeptReady(stamped, CapturedJpeg(source.readBytes(), m.rotationDegrees), m)
     }
 
     @Synchronized
@@ -194,6 +173,7 @@ class PendingStore(
     private fun clearReady() {
         ready.delete()
         stamped.delete()
+        source.delete()
         File(dir, "ready.tmp").delete()
     }
 

@@ -14,9 +14,11 @@ import cz.julienika.reportcam.stamp.LocationLabels
 import cz.julienika.reportcam.stamp.OverlayPlacement
 import cz.julienika.reportcam.stamp.PlaceField
 import cz.julienika.reportcam.stamp.PlaceFormat
+import cz.julienika.reportcam.stamp.SchemeId
 import cz.julienika.reportcam.stamp.StampData
 import cz.julienika.reportcam.stamp.StampField
 import cz.julienika.reportcam.stamp.StampPlacement
+import cz.julienika.reportcam.stamp.StampScheme
 import cz.julienika.reportcam.stamp.StampSpec
 import cz.julienika.reportcam.stamp.StampStyle
 import cz.julienika.reportcam.stamp.TextField
@@ -66,6 +68,7 @@ class PrefsSource(
 object Keys {
     const val STAMP_TEXT = "stamp_text"
     const val SHOW_DATETIME = "show_datetime"
+    const val SHOW_WEEKDAY = "show_weekday"
     const val DATETIME_PATTERN = "datetime_pattern"
     const val SHOW_LOCATION = "show_location"
     const val COORD_FORMAT = "coord_format"
@@ -75,7 +78,9 @@ object Keys {
     const val PLACEMENT = "placement"
     const val FRAME_BORDER = "frame_border"
     const val TEXT_SIZE = "text_size"
-    const val COLORS = "colors"
+    /** Replaced by the schemes in G-003; read once, to carry an old choice over. */
+    const val LEGACY_COLORS = "colors"
+    const val STAMP_SCHEME = "stamp_scheme"
     const val OUTPUT_SIZE = "output_size"
     const val ASPECT = "aspect_ratio"
     const val DEFAULT_EV = "default_ev"
@@ -99,6 +104,15 @@ object Keys {
 
     /** Where a single quick messenger sits beside Share; "start" or "end". Either works (D016). */
     const val DEFAULT_QUICK_SIDE = "start"
+
+    /** Off by default: existing stamps keep their look until the user asks for the day (see D018). */
+    const val DEFAULT_SHOW_WEEKDAY = false
+
+    fun schemeBackground(id: SchemeId) = "scheme_${id.id}_background"
+
+    fun schemeText(id: SchemeId) = "scheme_${id.id}_text"
+
+    fun schemeOpacity(id: SchemeId) = "scheme_${id.id}_opacity"
 }
 
 /** The settings as the app uses them. */
@@ -124,7 +138,14 @@ data class AppSettings(
     val quickMessengers: List<Messenger>,
     /** A single quick messenger sits before Share (left in left-to-right languages), else after it. */
     val quickOnStart: Boolean,
+    /** The scheme new photos are stamped with; [stampSpec] uses it. */
+    val scheme: SchemeId = SchemeId.DARK,
+    val schemes: Map<SchemeId, StampScheme> = SchemeId.entries.associateWith(StampScheme::default),
 ) {
+    /** These settings stamping with [id] instead: the review's dark/light switch. */
+    fun withScheme(id: SchemeId): AppSettings =
+        copy(scheme = id, stampSpec = stampSpec.copy(style = schemes.getValue(id).style(stampSpec.style.textSizeFraction)))
+
     companion object {
         fun from(
             s: SettingsSource,
@@ -134,7 +155,11 @@ data class AppSettings(
             val format = if (s.string(Keys.COORD_FORMAT, "decimal") == "dms") CoordinateFormat.DMS else CoordinateFormat.DECIMAL
             val fields = mutableListOf<StampField>(TextField())
             if (s.bool(Keys.SHOW_DATETIME, true)) {
-                fields += DateTimeField(safePattern(s.string(Keys.DATETIME_PATTERN, Keys.DEFAULT_PATTERN)))
+                fields +=
+                    DateTimeField(
+                        safePattern(s.string(Keys.DATETIME_PATTERN, Keys.DEFAULT_PATTERN)),
+                        weekday = s.bool(Keys.SHOW_WEEKDAY, Keys.DEFAULT_SHOW_WEEKDAY),
+                    )
             }
             val placeFormat = if (showLocation) PlaceFormat.of(s.string(Keys.PLACE_FORMAT, Keys.DEFAULT_PLACE_FORMAT)) else null
             val placeField = placeFormat?.let(::PlaceField)
@@ -149,7 +174,9 @@ data class AppSettings(
                     }
                 fields += CoordinatesField(format, labels, hiddenWhen = hidden)
             }
-            val spec = StampSpec(fields, placement(s), style(s))
+            val schemes = SchemeId.entries.associateWith { scheme(s, it) }
+            val scheme = SchemeId.of(s.string(Keys.STAMP_SCHEME, "")) ?: legacyScheme(s)
+            val spec = StampSpec(fields, placement(s), schemes.getValue(scheme).style(textSize(s)))
             return AppSettings(
                 stampSpec = spec,
                 userText = s.string(Keys.STAMP_TEXT, "").trim(),
@@ -166,6 +193,8 @@ data class AppSettings(
                     Messenger.entries.filter { it.id in ids }.take(Messenger.QUICK_MAX)
                 },
                 quickOnStart = s.string(Keys.QUICK_SIDE, Keys.DEFAULT_QUICK_SIDE) != "end",
+                scheme = scheme,
+                schemes = schemes,
             )
         }
 
@@ -195,19 +224,60 @@ data class AppSettings(
             return p.copy(borderFraction = border)
         }
 
-        private fun style(s: SettingsSource): StampStyle {
-            val size =
-                when (s.string(Keys.TEXT_SIZE, "medium")) {
-                    "small" -> StampStyle.TEXT_SMALL
-                    "large" -> StampStyle.TEXT_LARGE
-                    else -> StampStyle.TEXT_MEDIUM
-                }
-            return when (s.string(Keys.COLORS, "light_on_dark")) {
-                "dark_on_light" -> StampStyle(size, 0xFF000000.toInt(), 0xB3FFFFFF.toInt())
-                "yellow_on_dark" -> StampStyle(size, 0xFFFFD600.toInt(), 0xB3000000.toInt())
-                else -> StampStyle(size, 0xFFFFFFFF.toInt(), 0x99000000.toInt())
+        private fun textSize(s: SettingsSource) =
+            when (s.string(Keys.TEXT_SIZE, "medium")) {
+                "small" -> StampStyle.TEXT_SMALL
+                "large" -> StampStyle.TEXT_LARGE
+                else -> StampStyle.TEXT_MEDIUM
             }
+
+        /** A stored colour that does not parse falls back to the scheme's default, never to a crash. */
+        private fun scheme(
+            s: SettingsSource,
+            id: SchemeId,
+        ): StampScheme {
+            val d = legacyDefault(s, id)
+            return StampScheme(
+                background = StampScheme.parseColor(s.string(Keys.schemeBackground(id), "")) ?: d.background,
+                text = StampScheme.parseColor(s.string(Keys.schemeText(id), "")) ?: d.text,
+                overlayOpacity =
+                    s
+                        .string(Keys.schemeOpacity(id), "")
+                        .toIntOrNull()
+                        ?.coerceIn(StampScheme.MIN_OPACITY, StampScheme.MAX_OPACITY) ?: d.overlayOpacity,
+            )
         }
+
+        /**
+         * What to store once so Settings shows an old colour choice as the scheme it became; empty once a
+         * scheme is stored. Written before Settings first shows, so the list and the stamp agree.
+         */
+        fun legacySeed(s: SettingsSource): Map<String, String> {
+            if (s.string(Keys.STAMP_SCHEME, "").isNotEmpty()) return emptyMap()
+            val seed = mutableMapOf(Keys.STAMP_SCHEME to legacyScheme(s).id)
+            if (s.string(Keys.LEGACY_COLORS, "") == "yellow_on_dark") {
+                val dark = legacyDefault(s, SchemeId.DARK)
+                seed[Keys.schemeText(SchemeId.DARK)] = StampScheme.formatColor(dark.text)
+                seed[Keys.schemeOpacity(SchemeId.DARK)] = dark.overlayOpacity.toString()
+            }
+            return seed
+        }
+
+        /** The old three-way colour choice becomes the default scheme, and yellow text carries over to dark. */
+        private fun legacyScheme(s: SettingsSource) =
+            if (s.string(Keys.LEGACY_COLORS, "") == "dark_on_light") SchemeId.LIGHT else SchemeId.DARK
+
+        private fun legacyDefault(
+            s: SettingsSource,
+            id: SchemeId,
+        ): StampScheme =
+            if (id == SchemeId.DARK && s.string(Keys.LEGACY_COLORS, "") == "yellow_on_dark") {
+                StampScheme.DEFAULT_DARK.copy(text = YELLOW, overlayOpacity = 70)
+            } else {
+                StampScheme.default(id)
+            }
+
+        private const val YELLOW = 0xFFFFD600.toInt()
 
         /** A stored pattern that no longer parses falls back to the default instead of crashing a capture. */
         private fun safePattern(p: String): String =

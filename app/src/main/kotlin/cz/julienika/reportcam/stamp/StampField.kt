@@ -29,10 +29,19 @@ class TextField : StampField {
 
 class DateTimeField(
     pattern: String,
+    /** The short day name, in the phone's language, before the date (Owner, G-003). */
+    weekday: Boolean = false,
     locale: Locale = Locale.getDefault(),
 ) : StampField {
     override val id = "datetime"
-    private val formatter = DateTimeFormatter.ofPattern(pattern, locale)
+
+    // A pattern that already names the day keeps it once; quoted text ('Event') is not a field.
+    private val formatter =
+        DateTimeFormatter.ofPattern(if (weekday && 'E' !in pattern.replace(QUOTED, "")) "EEE $pattern" else pattern, locale)
+
+    private companion object {
+        val QUOTED = Regex("'[^']*'")
+    }
 
     override fun lines(data: StampData): List<String> =
         data[StampKeys.CAPTURE_TIME]?.let { listOf(formatter.format(it)) }.orEmpty()

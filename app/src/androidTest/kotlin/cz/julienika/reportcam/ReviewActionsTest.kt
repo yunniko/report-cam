@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.provider.MediaStore
 import android.view.View
 import android.widget.Button
@@ -35,7 +36,7 @@ import java.util.Properties
 
 /**
  * The stamped-photo half of the review screen (G-003 M1): the editable caption and its switch, the
- * one-gallery-copy rule, and the unsent photo kept across a restart.
+ * one-gallery-copy rule, and the unsent photo kept across a restart; the dark/light restamp (G-003 M2).
  */
 @RunWith(AndroidJUnit4::class)
 class ReviewActionsTest {
@@ -234,6 +235,78 @@ class ReviewActionsTest {
             assertTrue(context.contentResolver.openInputStream(uri)!!.use { it.readBytes().isNotEmpty() })
             assertCopies(1, name)
             assertFalse("sent: nothing to bring back", File(pendingDir, "ready.properties").exists())
+        }
+    }
+
+    private fun stampedBytes() = File(pendingDir, "stamped.jpg").readBytes()
+
+    /** Mean luminance of a downsampled decode: the same photo with a lighter stamp box reads brighter. */
+    private fun brightness(jpeg: ByteArray): Double {
+        val b = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, BitmapFactory.Options().apply { inSampleSize = 8 })
+        var sum = 0.0
+        for (y in 0 until b.height) {
+            for (x in 0 until b.width) {
+                val c = b.getPixel(x, y)
+                sum += 0.299 * (c shr 16 and 0xFF) + 0.587 * (c shr 8 and 0xFF) + 0.114 * (c and 0xFF)
+            }
+        }
+        return sum / (b.width * b.height)
+    }
+
+    private fun ActivityScenario<CameraActivity>.restampTo(
+        button: Int,
+        suffix: String,
+    ) {
+        onActivity { it.view(button).performClick() }
+        waitFor("restamped as $suffix") { keptState().getProperty("file").endsWith("_$suffix.jpg") && it.canSend() }
+    }
+
+    @Test
+    fun aRestampIsANewUnsavedVersionAndSaveAddsOnlyThatOne() {
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(Keys.SAVE_GALLERY, true).commit()
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.shootAndStamp()
+            val dark = keptFileName()
+            assertEquals("dark", keptState().getProperty("scheme"))
+            val darkBytes = stampedBytes()
+            s.onActivity { it.view(R.id.save_gallery).performClick() }
+            s.waitFor("saved") { !it.view(R.id.save_gallery).isEnabled }
+            assertCopies(1, dark)
+
+            s.restampTo(R.id.scheme_light, "light")
+            val light = keptFileName()
+            assertEquals("light", keptState().getProperty("scheme"))
+            assertEquals("false", keptState().getProperty("saved"))
+            assertTrue("a lighter box", brightness(stampedBytes()) > brightness(darkBytes) + 1.0)
+            s.onActivity {
+                assertTrue("the new version is not saved yet", it.view(R.id.save_gallery).isEnabled)
+                it.view(R.id.save_gallery).performClick()
+            }
+            s.waitFor("saved again") { !it.view(R.id.save_gallery).isEnabled }
+            assertCopies(1, light)
+            assertCopies(1, dark)
+            s.onActivity { it.view(R.id.share_other).performClick() }
+            @Suppress("DEPRECATION")
+            val uri = lastSend().getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)!!
+            assertTrue("the restamped file is sent", uri.toString().endsWith(light))
+        }
+    }
+
+    @Test
+    fun aRestoredPhotoKeepsItsSchemeAndCanBeRestamped() {
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.shootAndStamp()
+            s.restampTo(R.id.scheme_light, "light")
+        }
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.waitFor("the stamped photo back in review") { it.canSend() }
+            assertEquals("light", keptState().getProperty("scheme"))
+            val lightBytes = stampedBytes()
+            s.restampTo(R.id.scheme_dark, "dark")
+            assertTrue("a darker box", brightness(stampedBytes()) < brightness(lightBytes) - 1.0)
+            val dark = keptFileName()
+            s.restampTo(R.id.scheme_light, "light-2")
+            assertTrue("the first light file is left as sent", File(File(context.cacheDir, "shared"), dark.replace("_dark", "_light")).isFile)
         }
     }
 }

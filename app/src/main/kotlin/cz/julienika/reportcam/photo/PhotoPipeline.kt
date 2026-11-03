@@ -31,17 +31,25 @@ class PhotoPipeline(
         aspect: AspectRatio,
     ): Bitmap = PhotoDecoder.cropTo(PhotoDecoder.decodeUpright(jpeg.bytes, jpeg.rotationDegrees, longEdge), aspect)
 
-    /** Stamps [base], writes the JPEG and returns it with a display copy. [base] is consumed: do not use it after. */
+    /**
+     * Stamps [base], writes the JPEG and returns it with a display copy. [base] is consumed: do not use it
+     * after. [nameSuffix] tells a redrawn version's file from the first one.
+     */
     fun finish(
         base: Bitmap,
         spec: StampSpec,
         data: StampData,
         displayLongEdge: Int,
+        nameSuffix: String = "",
     ): ProcessedPhoto {
         val stamped = StampRenderer.render(base, spec, data)
         outputDir.mkdirs()
-        val name = "report_" + FILE_TIME.format(data[StampKeys.CAPTURE_TIME]) + ".jpg"
-        val file = File(outputDir, name)
+        val base = "report_" + FILE_TIME.format(data[StampKeys.CAPTURE_TIME]) + nameSuffix
+        // A redrawn version never reuses a name: a messenger may already hold that file (D019).
+        val file =
+            generateSequence(1) { it + 1 }
+                .map { n -> File(outputDir, if (n == 1) "$base.jpg" else "$base-$n.jpg") }
+                .first { nameSuffix.isEmpty() || !it.exists() }
         file.outputStream().buffered().use { stamped.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }
         val display = PhotoDecoder.displayCopy(stamped, displayLongEdge)
         val result = ProcessedPhoto(file, stamped.width, stamped.height, display)

@@ -24,7 +24,7 @@ class PhotoMetadataTest {
     private val atMs = at.toInstant().toEpochMilli()
     private val spec =
         StampSpec(
-            listOf(TextField(), DateTimeField("yyyy-MM-dd HH:mm", Locale.ROOT), CoordinatesField(nowMillis = { atMs })),
+            listOf(TextField(), DateTimeField("yyyy-MM-dd HH:mm", locale = Locale.ROOT), CoordinatesField(nowMillis = { atMs })),
             OverlayPlacement(Corner.BOTTOM_START),
             StampStyle(),
         )

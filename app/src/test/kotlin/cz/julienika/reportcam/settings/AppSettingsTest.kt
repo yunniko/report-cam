@@ -8,8 +8,10 @@ import cz.julienika.reportcam.stamp.LocationReading
 import cz.julienika.reportcam.stamp.OverlayPlacement
 import cz.julienika.reportcam.stamp.Place
 import cz.julienika.reportcam.stamp.PlaceFormat
+import cz.julienika.reportcam.stamp.SchemeId
 import cz.julienika.reportcam.stamp.StampData
 import cz.julienika.reportcam.stamp.StampKeys
+import cz.julienika.reportcam.stamp.StampScheme
 import cz.julienika.reportcam.stamp.StampStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -175,5 +177,80 @@ class AppSettingsTest {
         assertEquals(listOf(Messenger.WHATSAPP, Messenger.TELEGRAM, Messenger.MESSENGER), s.quickMessengers)
         assertFalse(s.quickOnStart)
         assertEquals(emptyList<Messenger>(), AppSettings.from(FakeSource(Keys.QUICK_MESSENGERS to emptySet<String>())).quickMessengers)
+    }
+
+    @Test
+    fun theDarkSchemeIsTheDefaultWithTheOldColours() {
+        val a = AppSettings.from(FakeSource())
+        assertEquals(SchemeId.DARK, a.scheme)
+        assertEquals(0xFFFFFFFF.toInt(), a.stampSpec.style.textColor)
+        assertEquals(0x99000000.toInt(), a.stampSpec.style.backgroundColor)
+    }
+
+    @Test
+    fun storedSchemeColoursAndOpacityAreUsedAndBrokenOnesFallBack() {
+        val a =
+            AppSettings.from(
+                FakeSource(
+                    Keys.STAMP_SCHEME to "light",
+                    Keys.schemeBackground(SchemeId.LIGHT) to "#FFF3D6",
+                    Keys.schemeText(SchemeId.LIGHT) to "#0D2B45",
+                    Keys.schemeOpacity(SchemeId.LIGHT) to "100",
+                    Keys.schemeBackground(SchemeId.DARK) to "not a colour",
+                    Keys.schemeOpacity(SchemeId.DARK) to "5",
+                ),
+            )
+        assertEquals(SchemeId.LIGHT, a.scheme)
+        assertEquals(0xFF0D2B45.toInt(), a.stampSpec.style.textColor)
+        assertEquals(0xFFFFF3D6.toInt(), a.stampSpec.style.backgroundColor)
+        val dark = a.schemes.getValue(SchemeId.DARK)
+        assertEquals(StampScheme.DEFAULT_DARK.background, dark.background)
+        assertEquals("clamped to the minimum", StampScheme.MIN_OPACITY, dark.overlayOpacity)
+    }
+
+    @Test
+    fun withSchemeSwitchesTheStyleAndKeepsTheTextSize() {
+        val a = AppSettings.from(FakeSource(Keys.TEXT_SIZE to "large"))
+        val light = a.withScheme(SchemeId.LIGHT)
+        assertEquals(SchemeId.LIGHT, light.scheme)
+        assertEquals(0xFF000000.toInt(), light.stampSpec.style.textColor)
+        assertEquals(StampStyle.TEXT_LARGE, light.stampSpec.style.textSizeFraction, 0f)
+        assertEquals(a.stampSpec.fields, light.stampSpec.fields)
+    }
+
+    @Test
+    fun theOldColourChoiceCarriesOverToTheSchemes() {
+        assertEquals(SchemeId.LIGHT, AppSettings.from(FakeSource(Keys.LEGACY_COLORS to "dark_on_light")).scheme)
+        val yellow = AppSettings.from(FakeSource(Keys.LEGACY_COLORS to "yellow_on_dark"))
+        assertEquals(SchemeId.DARK, yellow.scheme)
+        assertEquals(0xFFFFD600.toInt(), yellow.stampSpec.style.textColor)
+        assertEquals(0xB3000000.toInt(), yellow.stampSpec.style.backgroundColor)
+        // A scheme chosen since wins over the old key.
+        assertEquals(SchemeId.DARK, AppSettings.from(FakeSource(Keys.LEGACY_COLORS to "dark_on_light", Keys.STAMP_SCHEME to "dark")).scheme)
+    }
+
+    @Test
+    fun theLegacySeedWritesTheCarriedOverChoiceOnce() {
+        assertEquals(
+            mapOf(Keys.STAMP_SCHEME to "dark", Keys.schemeText(SchemeId.DARK) to "#FFD600", Keys.schemeOpacity(SchemeId.DARK) to "70"),
+            AppSettings.legacySeed(FakeSource(Keys.LEGACY_COLORS to "yellow_on_dark")),
+        )
+        assertEquals(mapOf(Keys.STAMP_SCHEME to "dark"), AppSettings.legacySeed(FakeSource()))
+        assertEquals(emptyMap<String, String>(), AppSettings.legacySeed(FakeSource(Keys.STAMP_SCHEME to "light")))
+    }
+
+    @Test
+    fun theWeekdayIsOffByDefaultAndPrintsBeforeTheDateWhenOn() {
+        val data = StampData.EMPTY.with(StampKeys.CAPTURE_TIME, java.time.ZonedDateTime.parse("2026-11-03T13:38:47+01:00[Europe/Prague]"))
+        fun dateLine(vararg v: Pair<String, Any>) =
+            AppSettings
+                .from(FakeSource(*v))
+                .stampSpec.fields
+                .single { it.id == "datetime" }
+                .lines(data)
+                .single()
+        assertEquals("2026-11-03 13:38:47", dateLine())
+        assertTrue(dateLine(Keys.SHOW_WEEKDAY to true).endsWith(" 2026-11-03 13:38:47"))
+        assertEquals(dateLine(Keys.SHOW_WEEKDAY to true), dateLine(Keys.SHOW_WEEKDAY to true, Keys.DATETIME_PATTERN to Keys.DEFAULT_PATTERN))
     }
 }
