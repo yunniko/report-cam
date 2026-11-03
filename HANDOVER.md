@@ -5,8 +5,8 @@ A native Android stamp camera for photo reports. Goal G-001 is in `GOALS.md`. Ch
 
 ## Current state
 
-G-001 is active; M1–M4 are done, M5 (release and phone test) remains. Verified this session on the Pixel 3a
-API 34 emulator, debug build:
+G-001 is active; M1–M4 are done, M5 (release and phone test) remains. State on the Pixel 3a
+API 34 emulator, debug build, at the commit above:
 - Capture → stamped 960×1280 JPEG (1280 px default) in 442–482 ms, shown for review; gallery copy in
   `Pictures/Report Cam`.
 - Stamp: settings text, date/time, coordinates with accuracy, approximate and age marks; overlay or frame.
