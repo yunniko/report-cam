@@ -336,6 +336,7 @@ class CameraActivity : ComponentActivity() {
             when {
                 base == null -> {
                     toast(R.string.process_failed)
+                    pendingStore.clear() // a photo that cannot be decoded would fail again on restore
                     if (hasCameraPermission()) openCamera()
                 }
                 waitForFix -> review.waitForLocation(base, data, s)
