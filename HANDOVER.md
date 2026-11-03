@@ -5,7 +5,7 @@ A native Android stamp camera for photo reports. Goal G-001 is in `GOALS.md`. Ch
 
 ## Current state
 
-G-001 is active; M1–M5 are built and the Owner's phone test is pending. State on the Pixel 3a
+G-001 is done (signed off 2026-11-03, archived in `docs/goals-archive.md`); G-002 is planned, not started. State on the Pixel 3a
 API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped 960×1280 JPEG (1280 px default) in 442–482 ms, shown for review; gallery copy in
   `Pictures/Report Cam`.
@@ -51,10 +51,8 @@ Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons
 
 ## Next steps and open questions
 
-- PENDING APPROVAL: the Owner's phone test of APK 0.1.1 and sign-off of G-001 (cold start, WhatsApp and
-  Telegram caption handling, pinch zoom, outdoor GPS). Fixes it calls for go into G-001 before sign-off.
+- G-002 (`GOALS.md`): plan proposed, waiting for the Owner's acceptance and answers on the open questions.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
-- Later (Owner): a street-address stamp field.
 
 ## Deploy log
 
