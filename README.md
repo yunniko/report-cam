@@ -12,7 +12,7 @@ Nothing runs in the background, and the camera is open only while the live previ
 - The marker at top left shows the location state; tap it to allow location. Tap the preview to focus,
   pinch to zoom, use the slider for exposure.
 - Stamp data is also stored in the file's EXIF and XMP metadata.
-- Current state: G-001 and G-002 are done (`docs/goals-archive.md`). Goals: `GOALS.md`. Project state and how it fits together: `HANDOVER.md`.
+- Project state and how it fits together: `HANDOVER.md`.
 
 ## Build and run
 

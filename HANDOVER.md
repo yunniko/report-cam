@@ -1,7 +1,7 @@
 # report-cam — Handover
 Last verified: 2026-11-03 at 58a8fe3
 
-A native Android stamp camera for photo reports. Open goals are in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
+A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept local. Charter: `E:\CLAUDE\COMPANY\`.
 
 ## Current state
 
@@ -67,6 +67,7 @@ WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup t
 
 ## Rules in force
 
+- `GOALS.md` and `docs/goals-archive.md` stay out of the public repo, through `.git/info/exclude` (Owner, 2026-11-03).
 - Never hold the camera outside a visible live preview: close it in `onStop` and after capture (Owner, D003).
 - Nothing runs in the background: no services, no WorkManager, no background location (Owner, 2026-11-03).
 - minSdk 26 (Owner, D002).
