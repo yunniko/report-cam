@@ -13,6 +13,7 @@ import cz.julienika.reportcam.stamp.LocationLabels
 import cz.julienika.reportcam.stamp.OverlayPlacement
 import cz.julienika.reportcam.stamp.PlaceField
 import cz.julienika.reportcam.stamp.PlaceFormat
+import cz.julienika.reportcam.stamp.StampData
 import cz.julienika.reportcam.stamp.StampField
 import cz.julienika.reportcam.stamp.StampPlacement
 import cz.julienika.reportcam.stamp.StampSpec
@@ -58,6 +59,7 @@ object Keys {
     const val SHOW_LOCATION = "show_location"
     const val COORD_FORMAT = "coord_format"
     const val PLACE_FORMAT = "place_format"
+    const val SHOW_COORDINATES = "show_coordinates"
     const val WAIT_PRECISE = "wait_precise"
     const val PLACEMENT = "placement"
     const val FRAME_BORDER = "frame_border"
@@ -111,8 +113,18 @@ data class AppSettings(
                 fields += DateTimeField(safePattern(s.string(Keys.DATETIME_PATTERN, Keys.DEFAULT_PATTERN)))
             }
             val placeFormat = if (showLocation) PlaceFormat.of(s.string(Keys.PLACE_FORMAT, Keys.DEFAULT_PLACE_FORMAT)) else null
-            if (placeFormat != null) fields += PlaceField(placeFormat)
-            if (showLocation) fields += CoordinatesField(format, labels)
+            val placeField = placeFormat?.let(::PlaceField)
+            if (placeField != null) fields += placeField
+            if (showLocation) {
+                // Coordinates off only drops them while a place name prints; without one they still say where (D012).
+                val hidden: (StampData) -> Boolean =
+                    if (placeField != null && !s.bool(Keys.SHOW_COORDINATES, true)) {
+                        { placeField.lines(it).isNotEmpty() }
+                    } else {
+                        { false }
+                    }
+                fields += CoordinatesField(format, labels, hiddenWhen = hidden)
+            }
             val spec = StampSpec(fields, placement(s), style(s))
             return AppSettings(
                 stampSpec = spec,
@@ -140,8 +152,11 @@ data class AppSettings(
                 FramePlacement(top = true),
             ).associateBy { it.id }
 
-        /** Frame border width by stored id, as a fraction of the photo's short edge. */
-        val FRAME_BORDERS: Map<String, Float> = mapOf("none" to 0f, "thin" to 0.01f, "medium" to 0.025f, "thick" to 0.05f)
+        /**
+         * Frame border width by stored id, as a fraction of the photo's short edge. The Owner found the first
+         * scale too thin (2026-11-03): the old thick is now medium, and each step doubles (D013).
+         */
+        val FRAME_BORDERS: Map<String, Float> = mapOf("none" to 0f, "thin" to 0.025f, "medium" to 0.05f, "thick" to 0.1f)
 
         private const val MAX_EV = 4f
 

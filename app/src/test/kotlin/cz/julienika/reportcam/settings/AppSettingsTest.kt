@@ -2,8 +2,13 @@ package cz.julienika.reportcam.settings
 
 import cz.julienika.reportcam.photo.AspectRatio
 import cz.julienika.reportcam.stamp.FramePlacement
+import cz.julienika.reportcam.stamp.GeoFix
+import cz.julienika.reportcam.stamp.LocationReading
 import cz.julienika.reportcam.stamp.OverlayPlacement
+import cz.julienika.reportcam.stamp.Place
 import cz.julienika.reportcam.stamp.PlaceFormat
+import cz.julienika.reportcam.stamp.StampData
+import cz.julienika.reportcam.stamp.StampKeys
 import cz.julienika.reportcam.stamp.StampStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +42,38 @@ class AppSettingsTest {
         val noLocation = AppSettings.from(FakeSource(Keys.PLACE_FORMAT to "city", Keys.SHOW_LOCATION to false))
         assertNull("no location, no place", noLocation.placeFormat)
         assertEquals(listOf("text", "datetime"), noLocation.stampSpec.fields.map { it.id })
+    }
+
+    private val fixData =
+        StampData.EMPTY
+            .with(StampKeys.LOCATION, LocationReading.Fix(GeoFix(50.08765, 14.42133, 5f, System.currentTimeMillis())))
+    private val withPlace = fixData.with(StampKeys.PLACE, Place(street = "Dlouhá", houseNumber = "5", city = "Praha"))
+
+    private fun stampLines(
+        s: AppSettings,
+        data: StampData,
+    ) = s.stampSpec.fields.flatMap { it.lines(data) }
+
+    @Test
+    fun coordinatesOffLeavesOnlyThePlaceNameButReturnWhenNoneIsFound() {
+        val s = AppSettings.from(FakeSource(Keys.PLACE_FORMAT to "street_city", Keys.SHOW_COORDINATES to false))
+        assertEquals(listOf("Dlouhá 5, Praha"), stampLines(s, withPlace))
+        assertEquals(listOf("50.08765, 14.42133 ±5 m"), stampLines(s, fixData))
+        // A place that prints nothing in this format counts as none found.
+        val cityOnly = AppSettings.from(FakeSource(Keys.PLACE_FORMAT to "city", Keys.SHOW_COORDINATES to false))
+        assertEquals(listOf("50.08765, 14.42133 ±5 m"), stampLines(cityOnly, fixData.with(StampKeys.PLACE, Place(street = "Dlouhá"))))
+    }
+
+    @Test
+    fun coordinatesOffIsIgnoredWhilePlaceNamesAreOff() {
+        val s = AppSettings.from(FakeSource(Keys.SHOW_COORDINATES to false))
+        assertEquals(listOf("50.08765, 14.42133 ±5 m"), stampLines(s, withPlace))
+    }
+
+    @Test
+    fun coordinatesStayOnByDefaultNextToThePlace() {
+        val s = AppSettings.from(FakeSource(Keys.PLACE_FORMAT to "street_city"))
+        assertEquals(listOf("Dlouhá 5, Praha", "50.08765, 14.42133 ±5 m"), stampLines(s, withPlace))
     }
 
     @Test
@@ -108,9 +145,9 @@ class AppSettingsTest {
     @Test
     fun frameBorderAppliesToFramePlacementsOnly() {
         val framed = AppSettings.from(FakeSource(Keys.PLACEMENT to "frame_bottom", Keys.FRAME_BORDER to "thick"))
-        assertEquals(0.05f, (framed.stampSpec.placement as FramePlacement).borderFraction, 0f)
+        assertEquals(0.1f, (framed.stampSpec.placement as FramePlacement).borderFraction, 0f)
         val byDefault = AppSettings.from(FakeSource(Keys.PLACEMENT to "frame_top"))
-        assertEquals(0.025f, (byDefault.stampSpec.placement as FramePlacement).borderFraction, 0f)
+        assertEquals(0.05f, (byDefault.stampSpec.placement as FramePlacement).borderFraction, 0f)
         val none = AppSettings.from(FakeSource(Keys.PLACEMENT to "frame_top", Keys.FRAME_BORDER to "none"))
         assertEquals(0f, (none.stampSpec.placement as FramePlacement).borderFraction, 0f)
         val overlay = AppSettings.from(FakeSource(Keys.FRAME_BORDER to "thick"))

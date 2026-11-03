@@ -58,10 +58,15 @@ class CoordinatesField(
     private val format: CoordinateFormat = CoordinateFormat.DECIMAL,
     private val labels: LocationLabels = LocationLabels(),
     private val nowMillis: () -> Long = System::currentTimeMillis,
+    /** True when another line already says where the photo was, so coordinates are left off the stamp (D012). */
+    private val hiddenWhen: (StampData) -> Boolean = { false },
 ) : StampField {
     override val id = "coordinates"
 
     override fun lines(data: StampData): List<String> =
+        if (hiddenWhen(data)) emptyList() else describeReading(data)
+
+    private fun describeReading(data: StampData): List<String> =
         when (val reading = data[StampKeys.LOCATION]) {
             null -> emptyList()
             LocationReading.None -> listOf(labels.unavailable)

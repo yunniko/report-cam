@@ -11,3 +11,5 @@
 - D009 — Photo shape is short:long and follows the hold; the preview shows the whole frame — active
 - D010 — A waiting photo is kept on disk, and losing location does not end its wait — active
 - D011 — The place name is looked up once, for the fix being stamped, and is off by default — active
+- D012 — "Coordinates on the stamp" off drops them only while a place name prints — active
+- D013 — Frame border widths: thin 2.5 %, medium 5 %, thick 10 % of the short edge — active

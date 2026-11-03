@@ -58,6 +58,13 @@
             app:summary="@string/pref_place_format_summary"
             app:title="@string/pref_place_format" />
         <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:dependency="show_location"
+            app:iconSpaceReserved="false"
+            app:key="show_coordinates"
+            app:summary="@string/pref_show_coordinates_summary"
+            app:title="@string/pref_show_coordinates" />
+        <SwitchPreferenceCompat
             app:defaultValue="false"
             app:dependency="show_location"
             app:iconSpaceReserved="false"
