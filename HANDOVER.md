@@ -6,7 +6,7 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 ## Current state
 
 G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen), M2 (stamp
-schemes, weekday) and M3 (settings redesign) are done, M4 remains. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
+schemes, weekday) and M3 (settings redesign) and M4 (verification, release 0.3.0) are done; the goal waits on the Owner's phone test and sign-off. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1): caption switch (starts at the Settings value) and editable caption; up to three quick
   messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
@@ -54,11 +54,12 @@ schemes, weekday) and M3 (settings redesign) are done, M4 remains. State on the 
 - Tests: 135 unit, 30 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; caption, one-copy rule, stamped-photo restore, restamp and its restore). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
-- Release build 0.2.2 (code 5): signed with the D007 key, 1.43 MB, sent to the Owner.
-  `scripts/camera-release-check.sh` on 0.2.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
-  step can fail, because camera close on this emulator takes 2–5 s. 0.1.1 behaves the same here.
-- Startup to a streaming preview on today's emulator: 0.2.0 2.5–3.8 s, 0.1.1 2.2–4.2 s, measured back to back,
-  so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
+- Release build 0.3.0 (code 6): signed with the D007 key, 1.60 MB, sent to the Owner. Settings and the colour
+  dialog open in it (custom Preference classes survive R8).
+  `scripts/camera-release-check.sh` on 0.3.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
+  step can fail, because camera close on this emulator takes 2–5 s.
+- Startup to a streaming preview, 0.3.0 and 0.2.2 alternated on one emulator, 10 cold starts each: 0.3.0
+  1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
 Not yet verified: anything on a real phone, including the place-name format Google returns there; the direct
 messengers and how each handles the caption; pinch zoom; startup times on a healthy device.
@@ -110,8 +111,8 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
 
 ## Next steps and open questions
 
-- G-003 M4: full suites, camera-release check, startup times; release 0.3.0 to the Owner for the phone test,
-  including how each messenger handles the caption.
+- PENDING APPROVAL: the Owner's phone test of 0.3.0, including how each quick messenger handles the caption,
+  then sign-off of G-003.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 
@@ -119,6 +120,7 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-04 | PENDINGHASH | APK 0.3.0 sent to the Owner: G-003 (review screen, stamp schemes, settings redesign, app theme) | `apksigner verify`; release check 10/10 twice; startup vs 0.2.2; unit 135/135, instrumented 30/30 |
 | 2026-11-03 | 2ebdd63 | Repo pushed public to github.com/yunniko/report-cam; APK 0.2.2 sent: city from the address line (D014) | secrets scan of the history; `apksigner verify`; unit 103/103 |
 | 2026-11-03 | d534cc7 | APK 0.2.1 sent to the Owner: border scale (D013), coordinates switch (D012) | `apksigner verify`; release launch on the emulator; unit 100/100, instrumented 18/18 |
 | 2026-11-03 | 3e2586f | APK 0.2.0 sent to the Owner: G-002 (shape, frame border, default EV, place name, deferred location) | `apksigner verify`; release check and startup on the emulator |
