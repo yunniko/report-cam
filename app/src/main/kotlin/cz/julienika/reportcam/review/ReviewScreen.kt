@@ -1,8 +1,11 @@
 package cz.julienika.reportcam.review
 
+import android.content.ActivityNotFoundException
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.SystemClock
 import android.util.Log
+import android.widget.Button
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.view.isVisible
@@ -19,7 +22,7 @@ import cz.julienika.reportcam.photo.PhotoMetadata
 import cz.julienika.reportcam.photo.PhotoPipeline
 import cz.julienika.reportcam.photo.ProcessedPhoto
 import cz.julienika.reportcam.settings.AppSettings
-import cz.julienika.reportcam.share.ShareTargets
+import cz.julienika.reportcam.share.Messenger
 import cz.julienika.reportcam.share.Sharing
 import cz.julienika.reportcam.stamp.LocationReading
 import cz.julienika.reportcam.stamp.StampData
@@ -28,13 +31,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.ZonedDateTime
 
 /**
  * The review half of the camera screen. A photo arrives either ready to stamp, or waiting for a precise
  * fix (D008): then it shows unstamped with a live readout, and is stamped when the fix settles or the
- * user picks "use current". Nothing can be sent until the photo is stamped. A waiting photo is also kept
- * in [store] and comes back after a restart (D010). The camera stays closed throughout (D003); [onLeave]
- * hands back to the live camera.
+ * user picks "use current". Nothing can be sent until the photo is stamped. The photo under review,
+ * waiting or stamped and unsent, is also kept in [store] and comes back after a restart (D010, D015).
+ * The camera stays closed throughout (D003); [onLeave] hands back to the live camera.
+ * [storageAccess] runs its block once a gallery write is allowed (Android 9 and older need a permission).
  */
 class ReviewScreen(
     private val activity: ComponentActivity,
@@ -43,6 +48,7 @@ class ReviewScreen(
     private val sharedDir: File,
     private val store: PendingStore,
     private val places: PlaceLookup,
+    private val storageAccess: (() -> Unit) -> Unit,
     private val onLeave: () -> Unit,
 ) {
     private sealed interface State {
@@ -61,14 +67,20 @@ class ReviewScreen(
 
         class Ready(
             val photo: ProcessedPhoto,
-            val caption: String,
+            val captureTime: ZonedDateTime,
             val settings: AppSettings,
+            /** This version is in the gallery: neither Save nor sending adds another copy (Owner, 2026-11-03). */
+            var saved: Boolean,
         ) : State
     }
 
     private var state: State = State.Idle
 
-    /** Bumped on every new photo and on leaving, so a stamp that finishes for an abandoned photo is dropped. */
+    /**
+     * Bumped on every new photo and on leaving, so a stamp that finishes for an abandoned photo is dropped.
+     * Read by the store's guards off the main thread.
+     */
+    @Volatile
     private var generation = 0
 
     /** True once the photo was handed to a messenger: coming back to the app then means "next photo". */
@@ -80,9 +92,12 @@ class ReviewScreen(
     init {
         ui.retake.setOnClickListener { leave() }
         ui.useCurrent.setOnClickListener { useCurrent() }
-        ui.shareWhatsapp.setOnClickListener { share(ShareTargets.WHATSAPP) }
-        ui.shareTelegram.setOnClickListener { share(ShareTargets.TELEGRAM) }
         ui.shareOther.setOnClickListener { share(null) }
+        ui.saveGallery.setOnClickListener {
+            val ready = state as? State.Ready ?: return@setOnClickListener
+            storageAccess { if (state === ready) saveToGallery(ready) }
+        }
+        ui.captionSwitch.setOnCheckedChangeListener { _, on -> ui.captionText.isEnabled = on }
     }
 
     /** Stamp [base] now with [data] as it is. */
@@ -124,16 +139,38 @@ class ReviewScreen(
         return data.with(StampKeys.PLACE, place)
     }
 
-    /** True when a photo from an earlier run is still waiting on disk; [restore] brings it back. */
+    /** True when a photo from an earlier run is still on disk; [restore] brings it back. */
     val hasSaved: Boolean get() = store.exists()
 
-    /** Reads the saved waiting photo back and resumes the wait; a broken entry is dropped. */
+    /**
+     * Reads the kept photo back: a stamped one returns to review as it was left, a waiting one resumes its
+     * wait. A broken entry is dropped.
+     */
     fun restore(settings: AppSettings) {
         enter()
         state = State.Restoring
         ui.busy.isVisible = true
         val token = generation
+        val displayEdge = displayEdge()
         activity.lifecycleScope.launch {
+            val stamped =
+                withContext(Dispatchers.IO) {
+                    try {
+                        store.loadReady()?.let { (kept, m) -> restoreStamped(kept, m, displayEdge) to m }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "restoring the stamped photo failed", e)
+                        store.clear()
+                        null
+                    }
+                }
+            if (token != generation) return@launch // the user left meanwhile
+            if (stamped != null) {
+                ui.busy.isVisible = false
+                val (photo, m) = stamped
+                Log.i(TAG, "restored a stamped photo, taken ${m.captureTime}")
+                showReady(State.Ready(photo, m.captureTime, settings, m.saved), m.caption, m.captionOn)
+                return@launch
+            }
             val loaded =
                 withContext(Dispatchers.IO) {
                     try {
@@ -207,29 +244,105 @@ class ReviewScreen(
                 }
             if (token != generation) return@launch // the user retook or left meanwhile
             ui.busy.isVisible = false
-            // Stamped or failed, the waiting copy has done its job. Cleared after the token check, so an
-            // abandoned stamp never deletes the next photo's copy.
-            store.clear()
             if (photo == null) {
                 toast(R.string.process_failed)
-                leave()
+                leave() // drops the waiting copy too: it would fail the same way on restore
                 return@launch
             }
             Log.i(TAG, "photo ${photo.width}x${photo.height} stamped in ${SystemClock.elapsedRealtime() - started}ms")
-            state = State.Ready(photo, PhotoMetadata.of(s.stampSpec, data).stampText, s)
-            ui.reviewImage.setImageBitmap(photo.display)
-            setShareVisible(true)
-            if (s.saveToGallery) saveToGallery(photo, data)
+            val captureTime = data[StampKeys.CAPTURE_TIME] ?: ZonedDateTime.now()
+            val caption = PhotoMetadata.of(s.stampSpec, data).stampText
+            // The stamped copy replaces the waiting one on disk before anything can be sent (D015), and
+            // not at all if the user left meanwhile.
+            val meta = ReadyMeta(photo.file.name, captureTime, caption, s.caption, saved = false)
+            withContext(Dispatchers.IO) {
+                try {
+                    store.saveReady(photo.file, meta) { token == generation }
+                } catch (e: Exception) {
+                    Log.e(TAG, "could not keep the stamped photo on disk", e)
+                }
+            }
+            if (token != generation) return@launch
+            showReady(State.Ready(photo, captureTime, s, saved = false), caption, s.caption)
         }
     }
 
-    private fun share(targets: List<String>?) {
+    private fun showReady(
+        ready: State.Ready,
+        caption: String,
+        captionOn: Boolean,
+    ) {
+        state = ready
+        ui.pendingRow.isVisible = false
+        ui.useCurrent.isVisible = false
+        ui.reviewImage.setImageBitmap(ready.photo.display)
+        ui.captionText.setText(caption)
+        ui.captionSwitch.isChecked = captionOn
+        ui.captionText.isEnabled = captionOn
+        showSaved(ready.saved)
+        setShareVisible(true)
+    }
+
+    /** The shared copy is written back from the kept one, so the restored file is the one a messenger gets. */
+    private fun restoreStamped(
+        kept: File,
+        m: ReadyMeta,
+        displayEdge: Int,
+    ): ProcessedPhoto {
+        val shared = File(sharedDir, m.fileName)
+        sharedDir.mkdirs()
+        kept.copyTo(shared, overwrite = true)
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(shared.path, bounds)
+        check(bounds.outWidth > 0) { "kept photo does not decode" }
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= displayEdge) sample *= 2
+        val decoded =
+            BitmapFactory.decodeFile(shared.path, BitmapFactory.Options().apply { inSampleSize = sample })
+                ?: error("kept photo does not decode")
+        return ProcessedPhoto(shared, bounds.outWidth, bounds.outHeight, PhotoDecoder.displayCopy(decoded, displayEdge))
+    }
+
+    private fun readyMeta(ready: State.Ready) =
+        ReadyMeta(
+            fileName = ready.photo.file.name,
+            captureTime = ready.captureTime,
+            caption = ui.captionText.text.toString(),
+            captionOn = ui.captionSwitch.isChecked,
+            saved = ready.saved,
+        )
+
+    /**
+     * Writes the caption, switch and saved flag of the photo under review to disk. Called from the
+     * activity's onStop, on the main thread: a small file, and done before a restart could read it.
+     */
+    fun persist() {
         val ready = state as? State.Ready ?: return
-        val pkg = targets?.let { installed(it) }
-        if (targets != null && pkg == null) return
-        val caption = if (ready.settings.caption) ready.caption else null
+        val token = generation
+        try {
+            store.updateReady(readyMeta(ready)) { token == generation }
+        } catch (e: Exception) {
+            Log.e(TAG, "could not keep the caption on disk", e)
+        }
+    }
+
+    private fun share(messenger: Messenger?) {
+        val ready = state as? State.Ready ?: return
+        val pkg = messenger?.let { installed(it) ?: return }
+        val caption = if (ui.captionSwitch.isChecked) ui.captionText.text.toString().trim().ifEmpty { null } else null
+        val intent = Sharing.sendIntent(activity, ready.photo.file, caption, pkg)
+        try {
+            activity.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.w(TAG, "$pkg is gone", e)
+            setShareVisible(true)
+            return
+        }
+        // "Save to gallery when sent", at most one copy per photo (Owner, 2026-11-03).
+        if (ready.settings.saveToGallery) saveToGallery(ready)
         sentSinceCapture = true
-        activity.startActivity(Sharing.sendIntent(activity, ready.photo.file, caption, pkg))
+        // Sent: coming back starts the next photo, so a restart must not bring this one back either.
+        store.clear()
     }
 
     /** Back to the live camera, dropping the photo under review. */
@@ -261,24 +374,72 @@ class ReviewScreen(
         setShareVisible(false)
     }
 
+    /** The stamped-photo rows, with the quick messengers placed by [ShareButtons]. */
     private fun setShareVisible(on: Boolean) {
-        ui.shareOther.isVisible = on
-        ui.shareWhatsapp.isVisible = on && installed(ShareTargets.WHATSAPP) != null
-        ui.shareTelegram.isVisible = on && installed(ShareTargets.TELEGRAM) != null
+        val ready = state as? State.Ready
+        val visible = on && ready != null
+        ui.captionRow.isVisible = visible
+        ui.shareRow.isVisible = visible
+        ui.saveGallery.isVisible = visible
+        if (ready == null || !visible) {
+            ui.quickRow.isVisible = false
+            return
+        }
+        val rows = ShareButtons.arrange(ready.settings.quickMessengers, ready.settings.quickOnStart) { installed(it) != null }
+        ui.quickRow.isVisible = rows.ownRow.isNotEmpty()
+        listOf(ui.quick1, ui.quick2, ui.quick3).forEachIndexed { i, b -> bind(b, rows.ownRow.getOrNull(i)) }
+        bind(ui.quickStart, rows.beside?.takeIf { rows.besideOnStart })
+        bind(ui.quickEnd, rows.beside?.takeIf { !rows.besideOnStart })
     }
 
-    private fun saveToGallery(
-        photo: ProcessedPhoto,
-        data: StampData,
+    private fun bind(
+        button: Button,
+        messenger: Messenger?,
     ) {
-        val takenAt = data[StampKeys.CAPTURE_TIME]?.toInstant()?.toEpochMilli() ?: System.currentTimeMillis()
+        button.isVisible = messenger != null
+        if (messenger == null) return
+        button.text = messenger.label
+        button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(messenger), 0, 0, 0)
+        button.setOnClickListener { share(messenger) }
+    }
+
+    private fun showSaved(saved: Boolean) {
+        ui.saveGallery.isEnabled = !saved
+        ui.saveGallery.setText(if (saved) R.string.saved_gallery else R.string.save_gallery)
+    }
+
+    /** At most one gallery copy per photo: marked saved before the write, so a tap or send meanwhile adds none. */
+    private fun saveToGallery(ready: State.Ready) {
+        if (ready.saved) return
+        ready.saved = true
+        showSaved(true)
+        val takenAt = ready.captureTime.toInstant().toEpochMilli()
+        val token = generation
         activity.lifecycleScope.launch {
-            val ok = withContext(Dispatchers.IO) { GallerySaver.save(activity.applicationContext, photo.file, takenAt) }
-            if (!ok) toast(R.string.gallery_failed)
+            val ok = withContext(Dispatchers.IO) { GallerySaver.save(activity.applicationContext, ready.photo.file, takenAt) }
+            if (!ok) {
+                ready.saved = false
+                toast(R.string.gallery_failed)
+            }
+            if (state !== ready) return@launch
+            showSaved(ready.saved)
+            val meta = readyMeta(ready)
+            withContext(Dispatchers.IO) { runCatching { store.updateReady(meta) { token == generation } } }
         }
     }
 
-    private fun installed(candidates: List<String>) = ShareTargets.firstInstalled(candidates) { Sharing.isInstalled(activity, it) }
+    private fun installed(m: Messenger) = m.firstInstalled { Sharing.isInstalled(activity, it) }
+
+    private fun icon(m: Messenger) =
+        when (m) {
+            Messenger.WHATSAPP -> R.drawable.ic_msg_whatsapp
+            Messenger.TELEGRAM -> R.drawable.ic_msg_telegram
+            Messenger.MESSENGER -> R.drawable.ic_msg_messenger
+            Messenger.DISCORD -> R.drawable.ic_msg_discord
+            Messenger.SLACK -> R.drawable.ic_msg_slack
+            Messenger.SNAPCHAT -> R.drawable.ic_msg_snapchat
+            Messenger.INSTAGRAM -> R.drawable.ic_msg_instagram
+        }
 
     private fun displayEdge() = activity.resources.displayMetrics.let { maxOf(it.widthPixels, it.heightPixels) }
 

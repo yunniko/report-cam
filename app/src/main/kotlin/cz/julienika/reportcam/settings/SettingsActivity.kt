@@ -3,6 +3,7 @@ package cz.julienika.reportcam.settings
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,7 @@ import cz.julienika.reportcam.R
 import cz.julienika.reportcam.location.LocationAccess
 import cz.julienika.reportcam.location.LocationPermissions
 import cz.julienika.reportcam.location.LocationTracker
+import cz.julienika.reportcam.share.Messenger
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +60,12 @@ class SettingsActivity : AppCompatActivity() {
             findPreference<Preference>(KEY_PERMISSION)?.setOnPreferenceClickListener {
                 permissions.resolve(LocationTracker(requireContext()).access())
                 true
+            }
+            // At most three quick buttons (Owner, 2026-11-03): a fourth tick is refused, not silently dropped.
+            findPreference<Preference>(Keys.QUICK_MESSENGERS)?.setOnPreferenceChangeListener { _, value ->
+                val ok = (value as? Set<*>)?.size?.let { it <= Messenger.QUICK_MAX } ?: true
+                if (!ok) Toast.makeText(requireContext(), R.string.pref_quick_too_many, Toast.LENGTH_SHORT).show()
+                ok
             }
         }
 

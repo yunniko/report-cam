@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import cz.julienika.reportcam.photo.AspectRatio
+import cz.julienika.reportcam.share.Messenger
 import cz.julienika.reportcam.stamp.CoordinateFormat
 import cz.julienika.reportcam.stamp.CoordinatesField
 import cz.julienika.reportcam.stamp.Corner
@@ -31,6 +32,11 @@ interface SettingsSource {
         key: String,
         default: Boolean,
     ): Boolean
+
+    fun stringSet(
+        key: String,
+        default: Set<String>,
+    ): Set<String>
 }
 
 class PrefsSource(
@@ -45,6 +51,11 @@ class PrefsSource(
         key: String,
         default: Boolean,
     ) = prefs.getBoolean(key, default)
+
+    override fun stringSet(
+        key: String,
+        default: Set<String>,
+    ): Set<String> = prefs.getStringSet(key, default) ?: default
 
     companion object {
         fun of(context: Context) = PrefsSource(PreferenceManager.getDefaultSharedPreferences(context))
@@ -70,6 +81,8 @@ object Keys {
     const val DEFAULT_EV = "default_ev"
     const val SAVE_GALLERY = "save_gallery"
     const val CAPTION = "caption"
+    const val QUICK_MESSENGERS = "quick_messengers"
+    const val QUICK_SIDE = "quick_side"
 
     const val DEFAULT_PATTERN = "yyyy-MM-dd HH:mm:ss"
     const val DEFAULT_PLACEMENT = "overlay_bottom_start"
@@ -80,6 +93,12 @@ object Keys {
 
     /** Small by default (Owner, 2026-11-03): long edge in px; 0 means the sensor's largest. See D006. */
     const val DEFAULT_OUTPUT_SIZE = "1280"
+
+    /** The two direct buttons the app had before the choice existed (G-001). */
+    val DEFAULT_QUICK_MESSENGERS = setOf("whatsapp", "telegram")
+
+    /** Where a single quick messenger sits beside Share; "start" or "end". Either works (D016). */
+    const val DEFAULT_QUICK_SIDE = "start"
 }
 
 /** The settings as the app uses them. */
@@ -97,9 +116,14 @@ data class AppSettings(
     val aspect: AspectRatio,
     /** Exposure compensation the camera opens at, in EV; tapping the EV label returns to it. */
     val defaultEv: Float,
+    /** Save a copy to the gallery when the photo is sent; the review's Save button saves regardless. */
     val saveToGallery: Boolean,
-    /** Send the stamp text as the share's caption (Owner, 2026-11-03). */
+    /** The review's caption switch starts on: the stamp text goes with the photo (Owner, 2026-11-03). */
     val caption: Boolean,
+    /** The quick messenger buttons, in [Messenger] order, at most [Messenger.QUICK_MAX]; not yet filtered by installed. */
+    val quickMessengers: List<Messenger>,
+    /** A single quick messenger sits before Share (left in left-to-right languages), else after it. */
+    val quickOnStart: Boolean,
 ) {
     companion object {
         fun from(
@@ -138,6 +162,10 @@ data class AppSettings(
                 defaultEv = s.string(Keys.DEFAULT_EV, "0").toFloatOrNull()?.coerceIn(-MAX_EV, MAX_EV) ?: 0f,
                 saveToGallery = s.bool(Keys.SAVE_GALLERY, true),
                 caption = s.bool(Keys.CAPTION, true),
+                quickMessengers = s.stringSet(Keys.QUICK_MESSENGERS, Keys.DEFAULT_QUICK_MESSENGERS).let { ids ->
+                    Messenger.entries.filter { it.id in ids }.take(Messenger.QUICK_MAX)
+                },
+                quickOnStart = s.string(Keys.QUICK_SIDE, Keys.DEFAULT_QUICK_SIDE) != "end",
             )
         }
 

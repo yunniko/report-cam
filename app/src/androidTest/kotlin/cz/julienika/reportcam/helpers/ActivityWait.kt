@@ -21,3 +21,6 @@ fun <A : Activity> ActivityScenario<A>.waitFor(
 }
 
 fun Activity.view(id: Int): View = findViewById(id)
+
+/** True once the stamped photo can be sent: the Share button is on screen, its row included. */
+fun Activity.canSend(): Boolean = view(cz.julienika.reportcam.R.id.share_other).isShown

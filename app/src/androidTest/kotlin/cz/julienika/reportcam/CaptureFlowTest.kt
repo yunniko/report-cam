@@ -17,6 +17,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import cz.julienika.reportcam.camera.CropGuideView
+import cz.julienika.reportcam.helpers.canSend
+import cz.julienika.reportcam.helpers.pendingDir
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
 import cz.julienika.reportcam.photo.AspectRatio
@@ -40,6 +42,8 @@ class CaptureFlowTest {
 
     @Before
     fun setUp() {
+        // A stamped photo kept by another test would come back instead of the camera.
+        context.pendingDir().deleteRecursively()
         PreferenceManager
             .getDefaultSharedPreferences(context)
             .edit()
@@ -63,7 +67,7 @@ class CaptureFlowTest {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("live preview") { it.view(R.id.shutter).isEnabled }
             s.onActivity { it.view(R.id.shutter).performClick() }
-            s.waitFor("stamped review") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.waitFor("stamped review") { it.canSend() }
             s.onActivity {
                 assertEquals(View.GONE, it.view(R.id.camera_controls).visibility)
                 it.view(R.id.share_other).performClick()
@@ -84,7 +88,7 @@ class CaptureFlowTest {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("live preview") { it.view(R.id.shutter).isEnabled }
             s.onActivity { it.view(R.id.shutter).performClick() }
-            s.waitFor("stamped review") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.waitFor("stamped review") { it.canSend() }
             s.onActivity { it.view(R.id.share_other).performClick() }
             val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
             @Suppress("DEPRECATION")
@@ -102,7 +106,7 @@ class CaptureFlowTest {
                 assertEquals(AspectRatio.SQUARE, (it.view(R.id.crop_guide) as CropGuideView).ratio)
                 it.view(R.id.shutter).performClick()
             }
-            s.waitFor("stamped review") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.waitFor("stamped review") { it.canSend() }
             s.onActivity { it.view(R.id.share_other).performClick() }
             val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
             @Suppress("DEPRECATION")

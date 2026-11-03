@@ -30,7 +30,14 @@ class SharedFilesTest {
     @Test
     fun firstInstalledPrefersListOrder() {
         val installed = setOf("com.whatsapp.w4b", "com.whatsapp")
-        assertEquals("com.whatsapp", ShareTargets.firstInstalled(ShareTargets.WHATSAPP) { it in installed })
-        assertNull(ShareTargets.firstInstalled(ShareTargets.TELEGRAM) { it in installed })
+        assertEquals("com.whatsapp", Messenger.WHATSAPP.firstInstalled { it in installed })
+        assertNull(Messenger.TELEGRAM.firstInstalled { it in installed })
+    }
+
+    @Test
+    fun messengerIdsAreUniqueAndFoundById() {
+        assertEquals(Messenger.entries.size, Messenger.entries.map { it.id }.toSet().size)
+        for (m in Messenger.entries) assertEquals(m, Messenger.of(m.id))
+        assertNull(Messenger.of("icq"))
     }
 }

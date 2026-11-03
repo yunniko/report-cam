@@ -1,6 +1,7 @@
 package cz.julienika.reportcam.settings
 
 import cz.julienika.reportcam.photo.AspectRatio
+import cz.julienika.reportcam.share.Messenger
 import cz.julienika.reportcam.stamp.FramePlacement
 import cz.julienika.reportcam.stamp.GeoFix
 import cz.julienika.reportcam.stamp.LocationReading
@@ -31,6 +32,12 @@ class AppSettingsTest {
             key: String,
             default: Boolean,
         ) = map[key] as? Boolean ?: default
+
+        @Suppress("UNCHECKED_CAST")
+        override fun stringSet(
+            key: String,
+            default: Set<String>,
+        ) = map[key] as? Set<String> ?: default
     }
 
     @Test
@@ -152,5 +159,21 @@ class AppSettingsTest {
         assertEquals(0f, (none.stampSpec.placement as FramePlacement).borderFraction, 0f)
         val overlay = AppSettings.from(FakeSource(Keys.FRAME_BORDER to "thick"))
         assertEquals(Keys.DEFAULT_PLACEMENT, overlay.stampSpec.placement.id)
+    }
+
+    @Test
+    fun quickMessengersDefaultToWhatsappAndTelegramBeforeShare() {
+        val s = AppSettings.from(FakeSource())
+        assertEquals(listOf(Messenger.WHATSAPP, Messenger.TELEGRAM), s.quickMessengers)
+        assertTrue(s.quickOnStart)
+    }
+
+    @Test
+    fun quickMessengersKeepTheirOwnOrderAtMostThreeAndIgnoreUnknownIds() {
+        val all = Messenger.entries.map { it.id }.toSet() + "icq"
+        val s = AppSettings.from(FakeSource(Keys.QUICK_MESSENGERS to all.reversed().toSet(), Keys.QUICK_SIDE to "end"))
+        assertEquals(listOf(Messenger.WHATSAPP, Messenger.TELEGRAM, Messenger.MESSENGER), s.quickMessengers)
+        assertFalse(s.quickOnStart)
+        assertEquals(emptyList<Messenger>(), AppSettings.from(FakeSource(Keys.QUICK_MESSENGERS to emptySet<String>())).quickMessengers)
     }
 }

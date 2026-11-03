@@ -185,6 +185,89 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- The rows below show once the photo is stamped (G-003 layout, Owner 2026-11-03). -->
+        <LinearLayout
+            android:id="@+id/caption_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:visibility="gone">
+
+            <Switch
+                android:id="@+id/caption_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:switchPadding="8dp"
+                android:text="@string/caption_switch"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/caption_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:hint="@string/caption_hint"
+                android:importantForAutofill="no"
+                android:inputType="textMultiLine|textCapSentences"
+                android:maxLines="4"
+                android:minHeight="48dp"
+                android:textColor="@android:color/white"
+                android:textColorHint="#B3FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Two or three quick messengers, evenly spaced (ShareButtons). -->
+        <LinearLayout
+            android:id="@+id/quick_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/quick_1"
+                style="@style/ReviewButton" />
+
+            <Button
+                android:id="@+id/quick_2"
+                style="@style/ReviewButton" />
+
+            <Button
+                android:id="@+id/quick_3"
+                style="@style/ReviewButton" />
+        </LinearLayout>
+
+        <!-- Share, with a single quick messenger before or after it; Share is the wider. -->
+        <LinearLayout
+            android:id="@+id/share_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/quick_start"
+                style="@style/ReviewButton"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/share_other"
+                style="@style/ReviewButton"
+                android:layout_weight="2"
+                android:text="@string/share_other" />
+
+            <Button
+                android:id="@+id/quick_end"
+                style="@style/ReviewButton"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -203,21 +286,9 @@
                 android:visibility="gone" />
 
             <Button
-                android:id="@+id/share_whatsapp"
+                android:id="@+id/save_gallery"
                 style="@style/ReviewButton"
-                android:text="@string/share_whatsapp"
-                android:visibility="gone" />
-
-            <Button
-                android:id="@+id/share_telegram"
-                style="@style/ReviewButton"
-                android:text="@string/share_telegram"
-                android:visibility="gone" />
-
-            <Button
-                android:id="@+id/share_other"
-                style="@style/ReviewButton"
-                android:text="@string/share_other"
+                android:text="@string/save_gallery"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>

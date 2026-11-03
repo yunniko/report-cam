@@ -41,6 +41,11 @@ class MetadataRoundTripTest {
                 key: String,
                 default: Boolean,
             ) = default
+
+            override fun stringSet(
+                key: String,
+                default: Set<String>,
+            ) = default
         }
 
     private fun jpeg(): File {

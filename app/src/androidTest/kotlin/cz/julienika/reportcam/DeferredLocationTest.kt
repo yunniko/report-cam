@@ -20,6 +20,8 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import cz.julienika.reportcam.helpers.canSend
+import cz.julienika.reportcam.helpers.pendingDir
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
 import cz.julienika.reportcam.settings.Keys
@@ -47,7 +49,7 @@ class DeferredLocationTest {
     private val context = instrumentation.targetContext
     private val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-    private val pendingDir = File(context.filesDir, "pending")
+    private val pendingDir = context.pendingDir()
 
     @Before
     fun setUp() {
@@ -107,7 +109,7 @@ class DeferredLocationTest {
         onActivity { it.view(R.id.shutter).performClick() }
         waitFor("photo waiting for a fix") { it.view(R.id.pending_row).visibility == View.VISIBLE }
         onActivity {
-            assertEquals("no sending while waiting", View.GONE, it.view(R.id.share_other).visibility)
+            assertFalse("no sending while waiting", it.canSend())
             assertEquals(View.VISIBLE, it.view(R.id.use_current).visibility)
             assertEquals(View.GONE, it.view(R.id.camera_controls).visibility)
         }
@@ -128,7 +130,7 @@ class DeferredLocationTest {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.shootIntoWaiting()
             push(PRECISE_M)
-            s.waitFor("stamped after the precise fix") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.waitFor("stamped after the precise fix") { it.canSend() }
             s.onActivity {
                 assertEquals(View.GONE, it.view(R.id.pending_row).visibility)
                 it.view(R.id.share_other).performClick()
@@ -147,7 +149,7 @@ class DeferredLocationTest {
                 assertEquals(it.getString(R.string.use_current), (it.view(R.id.use_current) as Button).text.toString())
                 it.view(R.id.use_current).performClick()
             }
-            s.waitFor("stamped with the current fix") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.waitFor("stamped with the current fix") { it.canSend() }
             s.onActivity { it.view(R.id.share_other).performClick() }
             val caption = lastCaption()
             assertTrue(caption, caption.contains("≈") && caption.contains("±500 m"))
@@ -179,10 +181,10 @@ class DeferredLocationTest {
             s.waitFor("the same photo waiting again") { it.view(R.id.pending_row).visibility == View.VISIBLE }
             s.onActivity {
                 assertEquals("the camera stays closed", View.GONE, it.view(R.id.camera_controls).visibility)
-                assertEquals(View.GONE, it.view(R.id.share_other).visibility)
+                assertFalse(it.canSend())
             }
             push(PRECISE_M)
-            s.waitFor("stamped after the precise fix") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.waitFor("stamped after the precise fix") { it.canSend() }
             s.onActivity { it.view(R.id.share_other).performClick() }
             val caption = lastCaption()
             assertTrue(caption, caption.startsWith("Deferred\n") && caption.contains("±5 m"))

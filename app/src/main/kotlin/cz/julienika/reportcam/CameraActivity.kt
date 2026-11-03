@@ -18,6 +18,7 @@ import android.view.MotionEvent
 import android.view.OrientationEventListener
 import android.view.ScaleGestureDetector
 import android.view.Surface
+import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -89,6 +90,15 @@ class CameraActivity : ComponentActivity() {
     private val startupPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { onStartupPermissions() }
 
+    /** The gallery write waiting on the storage prompt (Android 9 and older). */
+    private var afterStorageGrant: (() -> Unit)? = null
+    private val storagePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+            val block = afterStorageGrant
+            afterStorageGrant = null
+            if (ok) block?.invoke() else toast(R.string.storage_needed)
+        }
+
     private val orientationListener by lazy {
         object : OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
@@ -113,8 +123,11 @@ class CameraActivity : ComponentActivity() {
         session = CameraSession(this, ui.preview)
         tracker = LocationTracker(this)
         locationPermissions = LocationPermissions(this) { restartTracking() }
-        review = ReviewScreen(this, ui, tracker, sharedDir, pendingStore, GeocoderPlaceLookup(this)) { if (hasCameraPermission()) openCamera() }
-        // A photo still waiting for its location from an earlier run comes back instead of the camera (D010).
+        review =
+            ReviewScreen(this, ui, tracker, sharedDir, pendingStore, GeocoderPlaceLookup(this), ::withStorageAccess) {
+                if (hasCameraPermission()) openCamera()
+            }
+        // A photo under review in an earlier run, waiting or stamped and unsent, comes back instead of the camera (D010, D015).
         if (review.hasSaved) review.restore(AppSettings.from(PrefsSource.of(this), stampLabels()))
         ui.preview.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
         // The whole frame, not a screen-filling crop: what the preview shows is what the photo holds (D009).
@@ -124,9 +137,17 @@ class CameraActivity : ComponentActivity() {
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             ui.topBar.updatePadding(top = bars.top)
             ui.cameraControls.updatePadding(bottom = bars.bottom)
-            ui.reviewControls.updatePadding(bottom = bars.bottom + REVIEW_PAD)
+            // The caption field opens the keyboard: the controls ride above it.
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            ui.reviewControls.updatePadding(bottom = maxOf(bars.bottom, ime.bottom) + REVIEW_PAD)
             insets
         }
+        // The stamped photo fits between the bars, so the controls never cover the stamp itself.
+        val fitReviewImage = { _: View, _: Int, _: Int, _: Int, _: Int, _: Int, _: Int, _: Int, _: Int ->
+            ui.reviewImage.updatePadding(top = ui.topBar.height, bottom = ui.reviewControls.height)
+        }
+        ui.topBar.addOnLayoutChangeListener(fitReviewImage)
+        ui.reviewControls.addOnLayoutChangeListener(fitReviewImage)
 
         ui.preview.previewStreamState.observe(this) { state ->
             ui.shutter.isEnabled = state == PreviewView.StreamState.STREAMING
@@ -181,6 +202,8 @@ class CameraActivity : ComponentActivity() {
         tracker.stop()
         // A dialled-in exposure belongs to the scene in front of the user; the next visit opens at the default.
         if (!review.isActive) chosenEvIndex = null
+        // An edited caption survives the app being killed in the background (D015).
+        review.persist()
         orientationListener.disable()
         super.onStop()
     }
@@ -427,6 +450,16 @@ class CameraActivity : ComponentActivity() {
             wanted += Manifest.permission.WRITE_EXTERNAL_STORAGE
         }
         startupPermissions.launch(wanted.toTypedArray())
+    }
+
+    /** Runs [block] once gallery writes are allowed: always from Android 10, after a prompt before it. */
+    private fun withStorageAccess(block: () -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || granted(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            block()
+            return
+        }
+        afterStorageGrant = block
+        storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
     }
 
     private fun onStartupPermissions() {

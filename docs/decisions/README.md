@@ -14,3 +14,6 @@
 - D012 — "Coordinates on the stamp" off drops them only while a place name prints — active
 - D013 — Frame border widths: thin 2.5 %, medium 5 %, thick 10 % of the short edge — active
 - D014 — With no locality, the city is the address-line part after the postcode — active
+- D015 — A stamped, unsent photo is kept on disk with its caption state — active
+- D016 — A single quick messenger sits left of Share by default — active
+- D017 — The gallery gets at most one copy, saved on send or by the Save button — active

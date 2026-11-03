@@ -145,5 +145,21 @@
             app:key="caption"
             app:summary="@string/pref_caption_summary"
             app:title="@string/pref_caption" />
+        <MultiSelectListPreference
+            app:defaultValue="@array/quick_messenger_defaults"
+            app:entries="@array/quick_messenger_labels"
+            app:entryValues="@array/quick_messenger_values"
+            app:iconSpaceReserved="false"
+            app:key="quick_messengers"
+            app:summary="@string/pref_quick_messengers_summary"
+            app:title="@string/pref_quick_messengers" />
+        <ListPreference
+            app:defaultValue="start"
+            app:entries="@array/quick_side_labels"
+            app:entryValues="@array/quick_side_values"
+            app:iconSpaceReserved="false"
+            app:key="quick_side"
+            app:summary="@string/pref_quick_side_summary"
+            app:title="@string/pref_quick_side" />
     </PreferenceCategory>
 </PreferenceScreen>

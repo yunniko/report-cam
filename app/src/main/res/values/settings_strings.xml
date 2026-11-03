@@ -48,9 +48,44 @@
     <string name="pref_aspect_summary">%s. Follows how you hold the phone; the preview shows the crop.</string>
     <string name="pref_default_ev">Default exposure</string>
     <string name="pref_default_ev_summary">%s. The camera opens at it; tap the EV label to return to it.</string>
-    <string name="pref_save_gallery">Save to gallery</string>
-    <string name="pref_save_gallery_summary">Keep a copy in Pictures/Report Cam.</string>
+    <string name="pref_save_gallery">Save to gallery when sent</string>
+    <string name="pref_save_gallery_summary">Sending a photo also keeps a copy in Pictures/Report Cam. The Save button on the review screen saves without sending. A photo is never saved twice.</string>
     <string name="pref_caption">Add stamp text as caption</string>
+    <string name="pref_quick_messengers">Quick send buttons</string>
+    <string name="pref_quick_messengers_summary">Up to three messengers get their own button on the review screen. Only installed ones show.</string>
+    <string name="pref_quick_side">Single quick button</string>
+    <string name="pref_quick_side_summary">With one quick button chosen, it sits on this side of Share.</string>
+    <string name="pref_quick_too_many">Choose at most three.</string>
+    <string-array name="quick_side_labels">
+        <item>Left</item>
+        <item>Right</item>
+    </string-array>
+    <string-array name="quick_side_values" translatable="false">
+        <item>start</item>
+        <item>end</item>
+    </string-array>
+    <string-array name="quick_messenger_labels" translatable="false">
+        <item>WhatsApp</item>
+        <item>Telegram</item>
+        <item>Messenger</item>
+        <item>Discord</item>
+        <item>Slack</item>
+        <item>Snapchat</item>
+        <item>Instagram</item>
+    </string-array>
+    <string-array name="quick_messenger_values" translatable="false">
+        <item>whatsapp</item>
+        <item>telegram</item>
+        <item>messenger</item>
+        <item>discord</item>
+        <item>slack</item>
+        <item>snapchat</item>
+        <item>instagram</item>
+    </string-array>
+    <string-array name="quick_messenger_defaults" translatable="false">
+        <item>whatsapp</item>
+        <item>telegram</item>
+    </string-array>
     <string name="pref_caption_summary">The stamp text goes with the photo as a message, so it stays readable even though messengers strip metadata from photos.</string>
 
     <string-array name="datetime_pattern_labels">

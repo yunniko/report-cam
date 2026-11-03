@@ -76,4 +76,62 @@ class PendingStoreTest {
         assertArrayEquals(byteArrayOf(1, 2, 3), jpeg.bytes)
         assertEquals("second", m.userText)
     }
+
+    private val ready =
+        ReadyMeta(
+            fileName = "report_20261103_133847_123.jpg",
+            captureTime = meta.captureTime,
+            caption = "Stavba č. 4 – kontrola\nupraveno",
+            captionOn = false,
+            saved = true,
+        )
+
+    private fun stampedFile() = tmp.newFile().apply { writeBytes(bytes) }
+
+    @Test
+    fun aStampedPhotoComesBackWithItsCaptionAndFlags() {
+        store().saveReady(stampedFile(), ready)
+        val (file, m) = store().loadReady()!!
+        assertArrayEquals(bytes, file.readBytes())
+        assertEquals(ready, m)
+    }
+
+    @Test
+    fun keepingTheStampedPhotoDropsTheWaitingOne() {
+        val s = store()
+        s.save(CapturedJpeg(bytes, 0), meta)
+        s.saveReady(stampedFile(), ready)
+        assertFalse(s.hasWaiting())
+        assertNull(s.load())
+        assertTrue(s.hasReady())
+    }
+
+    @Test
+    fun anUpdateReplacesTheStateAndNeedsAKeptPhoto() {
+        val s = store()
+        s.updateReady(ready)
+        assertFalse("no photo, nothing to update", s.exists())
+        s.saveReady(stampedFile(), ready)
+        s.updateReady(ready.copy(caption = "jiný text", captionOn = true, saved = false))
+        assertEquals(ready.copy(caption = "jiný text", captionOn = true, saved = false), store().loadReady()!!.second)
+    }
+
+    @Test
+    fun aNewWaitingPhotoOrClearDropsTheStampedOne() {
+        val s = store()
+        s.saveReady(stampedFile(), ready)
+        s.save(CapturedJpeg(bytes, 0), meta)
+        assertFalse(s.hasReady())
+        s.saveReady(stampedFile(), ready)
+        s.clear()
+        assertFalse(s.exists())
+    }
+
+    @Test
+    fun aStampedEntryNamingAPathIsDropped() {
+        val s = store()
+        s.saveReady(stampedFile(), ready.copy(fileName = "../../shared_prefs/x.xml"))
+        assertNull(s.loadReady())
+        assertFalse(s.exists())
+    }
 }

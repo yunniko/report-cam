@@ -5,9 +5,17 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 ## Current state
 
-G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`); no goal is open. State on the Pixel 3a
-API 34 emulator at the commit above (debug build unless marked release):
-- Capture → stamped JPEG (1280 px long edge by default), shown for review; gallery copy in `Pictures/Report Cam`.
+G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen) is done,
+M2–M4 remain. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
+- Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
+- Review screen (G-003 M1): caption switch (starts at the Settings value) and editable caption; up to three quick
+  messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
+  Save to gallery. Only installed messengers show. Seen on the emulator with stand-in apps (`stub-messenger/`) for
+  1 left, 1 right, 2 and 3 buttons; the WhatsApp stand-in received the photo and the caption.
+- Gallery (D017): at most one copy in `Pictures/Report Cam`, on the first send when "Save to gallery when sent" is on,
+  or by the Save button; a retake without sending leaves none.
+- A stamped, unsent photo is kept on disk with caption, switch and saved flag (D015) and came back after
+  `am force-stop`; sending, Retake or a new shot drops it.
 - Photo shape (D009): full frame, 1:1, 4:5, 2:3 or 9:16, short:long following how the phone is held; centre-cropped
   before stamping. The preview shows the whole sensor frame and dims what the crop will cut away.
 - Stamp: settings text, date/time, coordinates with accuracy, approximate and age marks; overlay or frame. The
@@ -29,10 +37,10 @@ API 34 emulator at the commit above (debug build unless marked release):
   readout of the current fix and accuracy; Retake, Use current, or a precise fix stamps it. Sharing appears only
   once stamped. The waiting photo is kept on disk and comes back after `am force-stop` with its capture time;
   switching location off or denying it keeps it waiting and says so.
-- Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
+- Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 103 unit, 18 instrumented (shoot → review → share; deferred location through mock providers, including
-  restart; square crop; the real geocoder, skipped offline). The emulator camera currently runs at about
+- Tests: 116 unit, 25 instrumented (shoot → review → share; deferred location through mock providers, including
+  restart; square crop; the real geocoder, skipped offline; caption, one-copy rule and stamped-photo restore). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Release build 0.2.2 (code 5): signed with the D007 key, 1.43 MB, sent to the Owner.
   `scripts/camera-release-check.sh` on 0.2.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
@@ -41,14 +49,15 @@ API 34 emulator at the commit above (debug build unless marked release):
   so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
 Not yet verified: anything on a real phone, including the place-name format Google returns there; the direct
-WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup times on a healthy device.
+messengers and how each handles the caption; pinch zoom; startup times on a healthy device.
 
 ## How things fit together
 
 - `CameraActivity` is the only screen on the hot path, with two states (live camera, review) in one layout,
   so no Activity launch sits between the shutter and sending. `review/ReviewScreen` owns the review half
   (Restoring / Waiting / Stamping / Ready, a generation counter drops stamps for abandoned photos);
-  `PendingLocation` holds its pure rules, `PendingStore` the on-disk copy of a waiting photo in `filesDir/pending`;
+  `PendingLocation` holds its pure rules, `ShareButtons` the quick-button layout rule, and `PendingStore` the on-disk
+  copy in `filesDir/pending`: a waiting photo or a stamped one with its ready entry, never both;
   `location/PlaceLookup` the geocoder call made inside the stamp step.
   Settings is a separate AppCompat activity.
 - `camera/CameraSession` owns CameraX: open in `onStart`, close in `onStop` and after every capture (D003).
@@ -63,7 +72,9 @@ WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup t
 - Both activities call `enableEdgeToEdge` on every Android version (15+ enforces it) and place their bars
   from window insets; Settings has its own toolbar in `activity_settings.xml` for that reason.
 - `settings/AppSettings` maps stored preferences to what the app uses; keys and defaults live in `Keys`.
-- `share/Sharing` builds the send intent through the FileProvider; `SharedFiles` prunes copies after 24 h.
+- `share/Sharing` builds the send intent through the FileProvider; `SharedFiles` prunes copies after 24 h;
+  `share/Messenger` lists the quick messengers and their packages, which the manifest's `<queries>` must also name.
+- `stub-messenger/` is a test-only module: one APK per messenger under its real package, logging what it receives.
 
 ## Rules in force
 
@@ -76,13 +87,16 @@ WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup t
 - Place names are looked up only for the fix being stamped, and a failed lookup never blocks the photo (Owner, G-002).
 - Nothing is sent before the location is settled (Owner, 2026-11-03, D008).
 - A waiting photo is lost only when the user drops it: keep it across restarts and lost location (Owner, D010).
+- A stamped, unsent photo survives a kill with its caption state; Retake drops it (Owner, D015).
+- At most one gallery copy per photo; a retake without sending leaves none (Owner, D017).
 - XMP must stay ASCII with character references: ExifInterface corrupts non-ASCII XMP (measured, D006).
 - Do not export `MSYS_NO_PATHCONV` when running `gradlew` in Git Bash: the wrapper then fails to start
   (measured); set it only for `adb` commands.
 
 ## Next steps and open questions
 
-- No open goal. Day of the week in the date was postponed out of G-002 and waits for a new goal.
+- G-003 M2: dark and light stamp schemes, the review switch that restamps (a restamp clears the saved flag),
+  day of the week in the date. Then M3 (settings redesign) and M4 (verification, release 0.3.0).
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

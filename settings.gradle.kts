@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "report-cam"
 include(":app")
+include(":stub-messenger")

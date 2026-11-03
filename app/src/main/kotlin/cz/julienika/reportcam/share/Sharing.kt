@@ -7,17 +7,6 @@ import android.content.pm.PackageManager
 import androidx.core.content.FileProvider
 import java.io.File
 
-/** Messenger packages for the direct buttons, in order of preference. Each must be in the manifest's <queries>. */
-object ShareTargets {
-    val WHATSAPP = listOf("com.whatsapp", "com.whatsapp.w4b")
-    val TELEGRAM = listOf("org.telegram.messenger", "org.telegram.messenger.web", "org.thunderdog.challegram")
-
-    fun firstInstalled(
-        candidates: List<String>,
-        isInstalled: (String) -> Boolean,
-    ): String? = candidates.firstOrNull(isInstalled)
-}
-
 object Sharing {
     fun isInstalled(
         context: Context,
