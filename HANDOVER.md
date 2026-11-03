@@ -1,17 +1,21 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at 2e619ca
+Last verified: 2026-11-03 at 76f1565 (+ M3 commit)
 
 A native Android stamp camera for photo reports. Open goals are in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
 
 ## Current state
 
-G-001 is done (archived in `docs/goals-archive.md`); G-002 is active, M1 and M2 of 4 done. State on the Pixel 3a
+G-001 is done (archived in `docs/goals-archive.md`); G-002 is active, M1–M3 of 4 done. State on the Pixel 3a
 API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review; gallery copy in `Pictures/Report Cam`.
 - Photo shape (D009): full frame, 1:1, 4:5, 2:3 or 9:16, short:long following how the phone is held; centre-cropped
   before stamping. The preview shows the whole sensor frame and dims what the crop will cut away.
 - Stamp: settings text, date/time, coordinates with accuracy, approximate and age marks; overlay or frame. The
   frame now borders all four edges (none / thin / medium / thick), text in the bottom or top band.
+- Place name (D011): off by default; full address, street and number, street and city, or city, above the
+  coordinates and in XMP and the caption. Looked up once through Android's Geocoder just before stamping
+  (650 ms on the emulator, Google answering); offline it fails in about 0.3 s and the stamp keeps coordinates only.
+  Google gives Prague no locality, so the city reads "Hlavní město Praha". An approximate fix prints only ≈city.
 - Default exposure: Settings sets the EV the camera opens at (−2 to +2); tapping the EV label returns to it.
 - Location marker: green precise, amber approximate/old/searching (pulses while searching), gray and crossed
   out when denied or off. Tapping it asks for permission or opens settings. Denied → no stamp line, no GPS tags.
@@ -23,8 +27,8 @@ API 34 emulator at the commit above (debug build unless marked release):
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 84 unit, 16 instrumented (shoot → review → share; deferred location through mock providers, including
-  restart; square crop). The emulator camera currently runs at about 1 frame/s, so `DeferredLocationTest` cases
+- Tests: 97 unit, 18 instrumented (shoot → review → share; deferred location through mock providers, including
+  restart; square crop; the real geocoder, skipped offline). The emulator camera currently runs at about 1 frame/s, so `DeferredLocationTest` cases
   take 47–215 s each; they pass. `scripts/camera-release-check.sh` has not been rerun since M1 (10/10); M4 reruns it.
 - Release build 0.1.1 (G-001) is the last one sent: signed (D007), 1.40 MB.
 
@@ -36,7 +40,8 @@ pinch zoom; startup and capture times since M1 (measured again in M4).
 - `CameraActivity` is the only screen on the hot path, with two states (live camera, review) in one layout,
   so no Activity launch sits between the shutter and sending. `review/ReviewScreen` owns the review half
   (Restoring / Waiting / Stamping / Ready, a generation counter drops stamps for abandoned photos);
-  `PendingLocation` holds its pure rules, `PendingStore` the on-disk copy of a waiting photo in `filesDir/pending`.
+  `PendingLocation` holds its pure rules, `PendingStore` the on-disk copy of a waiting photo in `filesDir/pending`;
+  `location/PlaceLookup` the geocoder call made inside the stamp step.
   Settings is a separate AppCompat activity.
 - `camera/CameraSession` owns CameraX: open in `onStart`, close in `onStop` and after every capture (D003).
   `camera/CropGuideView` draws the crop over the preview with the same `photo/AspectCrop` math the pipeline uses.
@@ -59,6 +64,7 @@ pinch zoom; startup and capture times since M1 (measured again in M4).
 - minSdk 26 (Owner, D002).
 - Location is tracked only while visible and never fetched by a capture (Owner, D005).
 - No location permission means no location line and no GPS metadata (Owner, 2026-11-03).
+- Place names are looked up only for the fix being stamped, and a failed lookup never blocks the photo (Owner, G-002).
 - Nothing is sent before the location is settled (Owner, 2026-11-03, D008).
 - A waiting photo is lost only when the user drops it: keep it across restarts and lost location (Owner, D010).
 - XMP must stay ASCII with character references: ExifInterface corrupts non-ASCII XMP (measured, D006).
@@ -67,7 +73,7 @@ pinch zoom; startup and capture times since M1 (measured again in M4).
 
 ## Next steps and open questions
 
-- G-002 (`GOALS.md`): M3 place names through Android's `Geocoder` next, then M4 verification and a release APK.
+- G-002 (`GOALS.md`): M4 next: full suite, camera-release check, startup timing, release APK to the Owner.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

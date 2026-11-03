@@ -10,3 +10,4 @@
 - D008 — With "wait for precise location", the photo is taken at once and stamped when the fix settles — active
 - D009 — Photo shape is short:long and follows the hold; the preview shows the whole frame — active
 - D010 — A waiting photo is kept on disk, and losing location does not end its wait — active
+- D011 — The place name is looked up once, for the fix being stamped, and is off by default — active

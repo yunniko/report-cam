@@ -14,6 +14,22 @@
     <string name="pref_location_approx_summary">Tap to allow precise location.</string>
     <string name="pref_show_location">Show location</string>
     <string name="pref_coord_format">Coordinates</string>
+    <string name="pref_place_format">Place name</string>
+    <string name="pref_place_format_summary">%s. Looked up online through Google for the photo being stamped; offline the stamp keeps coordinates only.</string>
+    <string-array name="place_format_labels">
+        <item>Off</item>
+        <item>Full address</item>
+        <item>Street and number</item>
+        <item>Street and city</item>
+        <item>City</item>
+    </string-array>
+    <string-array name="place_format_values" translatable="false">
+        <item>off</item>
+        <item>full</item>
+        <item>street_number</item>
+        <item>street_city</item>
+        <item>city</item>
+    </string-array>
     <string name="pref_wait_precise">Wait for precise location</string>
     <string name="pref_wait_precise_summary">The photo is taken at once and stamped when a precise fix arrives. Until then you can retake it or use the current position.</string>
 

@@ -11,6 +11,7 @@ import cz.julienika.reportcam.R
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
 import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.LocationTracker
+import cz.julienika.reportcam.location.PlaceLookup
 import cz.julienika.reportcam.photo.ExifWriter
 import cz.julienika.reportcam.photo.GallerySaver
 import cz.julienika.reportcam.photo.PhotoDecoder
@@ -20,6 +21,7 @@ import cz.julienika.reportcam.photo.ProcessedPhoto
 import cz.julienika.reportcam.settings.AppSettings
 import cz.julienika.reportcam.share.ShareTargets
 import cz.julienika.reportcam.share.Sharing
+import cz.julienika.reportcam.stamp.LocationReading
 import cz.julienika.reportcam.stamp.StampData
 import cz.julienika.reportcam.stamp.StampKeys
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +42,7 @@ class ReviewScreen(
     private val tracker: LocationTracker,
     private val sharedDir: File,
     private val store: PendingStore,
+    private val places: PlaceLookup,
     private val onLeave: () -> Unit,
 ) {
     private sealed interface State {
@@ -108,6 +111,19 @@ class ReviewScreen(
         onLocation(tracker.status)
     }
 
+    /** The place name of the fix being stamped, and of no other (D011); unchanged when off or not found. */
+    private suspend fun withPlace(
+        data: StampData,
+        s: AppSettings,
+    ): StampData {
+        if (s.placeFormat == null) return data
+        val fix = (data[StampKeys.LOCATION] as? LocationReading.Fix)?.fix ?: return data
+        val started = SystemClock.elapsedRealtime()
+        val place = places.lookup(fix)
+        Log.i(TAG, "place ${if (place == null) "not found" else "found"} in ${SystemClock.elapsedRealtime() - started}ms")
+        return data.with(StampKeys.PLACE, place)
+    }
+
     /** True when a photo from an earlier run is still waiting on disk; [restore] brings it back. */
     val hasSaved: Boolean get() = store.exists()
 
@@ -165,7 +181,7 @@ class ReviewScreen(
 
     private fun stamp(
         base: Bitmap,
-        data: StampData,
+        found: StampData,
         s: AppSettings,
     ) {
         state = State.Stamping
@@ -176,6 +192,8 @@ class ReviewScreen(
         val displayEdge = displayEdge()
         activity.lifecycleScope.launch {
             val started = SystemClock.elapsedRealtime()
+            val data = withPlace(found, s)
+            if (token != generation) return@launch // the user retook or left during the lookup
             val photo =
                 try {
                     withContext(Dispatchers.Default) {

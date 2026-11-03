@@ -3,9 +3,11 @@ package cz.julienika.reportcam.settings
 import cz.julienika.reportcam.photo.AspectRatio
 import cz.julienika.reportcam.stamp.FramePlacement
 import cz.julienika.reportcam.stamp.OverlayPlacement
+import cz.julienika.reportcam.stamp.PlaceFormat
 import cz.julienika.reportcam.stamp.StampStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -24,6 +26,17 @@ class AppSettingsTest {
             key: String,
             default: Boolean,
         ) = map[key] as? Boolean ?: default
+    }
+
+    @Test
+    fun placeNamesAreOffByDefaultAndSitAboveTheCoordinatesWhenOn() {
+        assertNull(AppSettings.from(FakeSource()).placeFormat)
+        val on = AppSettings.from(FakeSource(Keys.PLACE_FORMAT to "street_city"))
+        assertEquals(PlaceFormat.STREET_CITY, on.placeFormat)
+        assertEquals(listOf("text", "datetime", "place", "coordinates"), on.stampSpec.fields.map { it.id })
+        val noLocation = AppSettings.from(FakeSource(Keys.PLACE_FORMAT to "city", Keys.SHOW_LOCATION to false))
+        assertNull("no location, no place", noLocation.placeFormat)
+        assertEquals(listOf("text", "datetime"), noLocation.stampSpec.fields.map { it.id })
     }
 
     @Test

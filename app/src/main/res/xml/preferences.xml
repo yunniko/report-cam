@@ -48,6 +48,15 @@
             app:key="coord_format"
             app:title="@string/pref_coord_format"
             app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:defaultValue="off"
+            app:dependency="show_location"
+            app:entries="@array/place_format_labels"
+            app:entryValues="@array/place_format_values"
+            app:iconSpaceReserved="false"
+            app:key="place_format"
+            app:summary="@string/pref_place_format_summary"
+            app:title="@string/pref_place_format" />
         <SwitchPreferenceCompat
             app:defaultValue="false"
             app:dependency="show_location"

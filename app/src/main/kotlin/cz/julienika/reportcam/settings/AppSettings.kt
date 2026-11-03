@@ -11,6 +11,8 @@ import cz.julienika.reportcam.stamp.DateTimeField
 import cz.julienika.reportcam.stamp.FramePlacement
 import cz.julienika.reportcam.stamp.LocationLabels
 import cz.julienika.reportcam.stamp.OverlayPlacement
+import cz.julienika.reportcam.stamp.PlaceField
+import cz.julienika.reportcam.stamp.PlaceFormat
 import cz.julienika.reportcam.stamp.StampField
 import cz.julienika.reportcam.stamp.StampPlacement
 import cz.julienika.reportcam.stamp.StampSpec
@@ -55,6 +57,7 @@ object Keys {
     const val DATETIME_PATTERN = "datetime_pattern"
     const val SHOW_LOCATION = "show_location"
     const val COORD_FORMAT = "coord_format"
+    const val PLACE_FORMAT = "place_format"
     const val WAIT_PRECISE = "wait_precise"
     const val PLACEMENT = "placement"
     const val FRAME_BORDER = "frame_border"
@@ -70,6 +73,9 @@ object Keys {
     const val DEFAULT_PLACEMENT = "overlay_bottom_start"
     const val DEFAULT_FRAME_BORDER = "medium"
 
+    /** Off until the user turns it on: it sends the fix to Google (D011). */
+    const val DEFAULT_PLACE_FORMAT = "off"
+
     /** Small by default (Owner, 2026-11-03): long edge in px; 0 means the sensor's largest. See D006. */
     const val DEFAULT_OUTPUT_SIZE = "1280"
 }
@@ -82,6 +88,8 @@ data class AppSettings(
     val showLocation: Boolean,
     val waitForPrecise: Boolean,
     val coordinateFormat: CoordinateFormat,
+    /** Null when place names are off; otherwise the stamped fix is looked up just before stamping (D011). */
+    val placeFormat: PlaceFormat?,
     val outputLongEdge: Int,
     /** The photo is cropped to this shape before stamping; a frame is added around the cropped photo. */
     val aspect: AspectRatio,
@@ -102,6 +110,8 @@ data class AppSettings(
             if (s.bool(Keys.SHOW_DATETIME, true)) {
                 fields += DateTimeField(safePattern(s.string(Keys.DATETIME_PATTERN, Keys.DEFAULT_PATTERN)))
             }
+            val placeFormat = if (showLocation) PlaceFormat.of(s.string(Keys.PLACE_FORMAT, Keys.DEFAULT_PLACE_FORMAT)) else null
+            if (placeFormat != null) fields += PlaceField(placeFormat)
             if (showLocation) fields += CoordinatesField(format, labels)
             val spec = StampSpec(fields, placement(s), style(s))
             return AppSettings(
@@ -110,6 +120,7 @@ data class AppSettings(
                 showLocation = showLocation,
                 waitForPrecise = showLocation && s.bool(Keys.WAIT_PRECISE, false),
                 coordinateFormat = format,
+                placeFormat = placeFormat,
                 outputLongEdge = s.string(Keys.OUTPUT_SIZE, Keys.DEFAULT_OUTPUT_SIZE).toIntOrNull() ?: 1280,
                 aspect = AspectRatio.of(s.string(Keys.ASPECT, AspectRatio.FULL.id)),
                 defaultEv = s.string(Keys.DEFAULT_EV, "0").toFloatOrNull()?.coerceIn(-MAX_EV, MAX_EV) ?: 0f,

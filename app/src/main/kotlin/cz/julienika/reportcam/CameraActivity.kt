@@ -39,6 +39,7 @@ import cz.julienika.reportcam.camera.CapturedJpeg
 import cz.julienika.reportcam.camera.ExposureDefault
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
 import cz.julienika.reportcam.location.FixPolicy
+import cz.julienika.reportcam.location.GeocoderPlaceLookup
 import cz.julienika.reportcam.location.LocationAccess
 import cz.julienika.reportcam.location.LocationMarker
 import cz.julienika.reportcam.location.LocationPermissions
@@ -112,7 +113,7 @@ class CameraActivity : ComponentActivity() {
         session = CameraSession(this, ui.preview)
         tracker = LocationTracker(this)
         locationPermissions = LocationPermissions(this) { restartTracking() }
-        review = ReviewScreen(this, ui, tracker, sharedDir, pendingStore) { if (hasCameraPermission()) openCamera() }
+        review = ReviewScreen(this, ui, tracker, sharedDir, pendingStore, GeocoderPlaceLookup(this)) { if (hasCameraPermission()) openCamera() }
         // A photo still waiting for its location from an earlier run comes back instead of the camera (D010).
         if (review.hasSaved) review.restore(AppSettings.from(PrefsSource.of(this), stampLabels()))
         ui.preview.implementationMode = PreviewView.ImplementationMode.PERFORMANCE

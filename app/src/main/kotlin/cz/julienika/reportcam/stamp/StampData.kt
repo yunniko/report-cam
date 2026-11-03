@@ -35,4 +35,7 @@ object StampKeys {
 
     /** Present whenever location permission is granted; [LocationReading.None] if no fix arrived. */
     val LOCATION = StampKey<LocationReading>("location")
+
+    /** The place name of the LOCATION fix, looked up just before stamping; absent when off or not found. */
+    val PLACE = StampKey<Place>("place")
 }
