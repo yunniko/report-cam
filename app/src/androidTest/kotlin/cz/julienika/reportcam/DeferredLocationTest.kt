@@ -23,8 +23,10 @@ import androidx.test.rule.GrantPermissionRule
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
 import cz.julienika.reportcam.settings.Keys
+import java.io.File
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -45,6 +47,7 @@ class DeferredLocationTest {
     private val context = instrumentation.targetContext
     private val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+    private val pendingDir = File(context.filesDir, "pending")
 
     @Before
     fun setUp() {
@@ -56,6 +59,7 @@ class DeferredLocationTest {
             lm.setTestProviderEnabled(p, true)
         }
         push(APPROX_M)
+        pendingDir.deleteRecursively()
         PreferenceManager
             .getDefaultSharedPreferences(context)
             .edit()
@@ -74,6 +78,7 @@ class DeferredLocationTest {
         for (p in providers) runCatching { lm.removeTestProvider(p) }
         shell("appops set ${context.packageName} android:mock_location deny")
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit()
+        pendingDir.deleteRecursively()
     }
 
     /** Runs [cmd] and waits for it to finish: the command runs asynchronously until its output is read. */
@@ -162,6 +167,39 @@ class DeferredLocationTest {
                 assertEquals(View.GONE, it.view(R.id.review_controls).visibility)
                 assertEquals(View.VISIBLE, it.view(R.id.camera_controls).visibility)
             }
+        }
+    }
+
+    @Test
+    fun aWaitingPhotoSurvivesTheAppBeingClosedAndReopened() {
+        ActivityScenario.launch(CameraActivity::class.java).use { it.shootIntoWaiting() }
+        // The first activity is destroyed with everything it held in memory; only the disk copy remains (D010).
+        assertTrue("waiting photo kept on disk", File(pendingDir, "meta.properties").isFile)
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.waitFor("the same photo waiting again") { it.view(R.id.pending_row).visibility == View.VISIBLE }
+            s.onActivity {
+                assertEquals("the camera stays closed", View.GONE, it.view(R.id.camera_controls).visibility)
+                assertEquals(View.GONE, it.view(R.id.share_other).visibility)
+            }
+            push(PRECISE_M)
+            s.waitFor("stamped after the precise fix") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.onActivity { it.view(R.id.share_other).performClick() }
+            val caption = lastCaption()
+            assertTrue(caption, caption.startsWith("Deferred\n") && caption.contains("±5 m"))
+            assertFalse("disk copy dropped once stamped", File(pendingDir, "meta.properties").exists())
+        }
+    }
+
+    @Test
+    fun retakeDropsTheDiskCopyToo() {
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.shootIntoWaiting()
+            s.onActivity { it.view(R.id.retake).performClick() }
+            s.waitFor("live preview again") { it.view(R.id.shutter).isEnabled }
+        }
+        assertFalse(File(pendingDir, "meta.properties").exists())
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.waitFor("live preview, nothing restored") { it.view(R.id.shutter).isEnabled }
         }
     }
 

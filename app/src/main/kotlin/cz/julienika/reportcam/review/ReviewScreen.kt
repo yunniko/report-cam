@@ -11,7 +11,6 @@ import cz.julienika.reportcam.R
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
 import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.LocationTracker
-import cz.julienika.reportcam.location.reading
 import cz.julienika.reportcam.photo.ExifWriter
 import cz.julienika.reportcam.photo.GallerySaver
 import cz.julienika.reportcam.photo.PhotoDecoder
@@ -31,18 +30,23 @@ import java.io.File
 /**
  * The review half of the camera screen. A photo arrives either ready to stamp, or waiting for a precise
  * fix (D008): then it shows unstamped with a live readout, and is stamped when the fix settles or the
- * user picks "use current". Nothing can be sent until the photo is stamped. The camera stays closed
- * throughout (D003); [onLeave] hands back to the live camera.
+ * user picks "use current". Nothing can be sent until the photo is stamped. A waiting photo is also kept
+ * in [store] and comes back after a restart (D010). The camera stays closed throughout (D003); [onLeave]
+ * hands back to the live camera.
  */
 class ReviewScreen(
     private val activity: ComponentActivity,
     private val ui: ActivityCameraBinding,
     private val tracker: LocationTracker,
     private val sharedDir: File,
+    private val store: PendingStore,
     private val onLeave: () -> Unit,
 ) {
     private sealed interface State {
         data object Idle : State
+
+        /** A waiting photo from an earlier run is being read back from the store. */
+        data object Restoring : State
 
         class Waiting(
             val base: Bitmap,
@@ -104,12 +108,47 @@ class ReviewScreen(
         onLocation(tracker.status)
     }
 
+    /** True when a photo from an earlier run is still waiting on disk; [restore] brings it back. */
+    val hasSaved: Boolean get() = store.exists()
+
+    /** Reads the saved waiting photo back and resumes the wait; a broken entry is dropped. */
+    fun restore(settings: AppSettings) {
+        enter()
+        state = State.Restoring
+        ui.busy.isVisible = true
+        val token = generation
+        activity.lifecycleScope.launch {
+            val loaded =
+                withContext(Dispatchers.IO) {
+                    try {
+                        store.load()?.let { (jpeg, m) -> PhotoPipeline(sharedDir).decode(jpeg, m.outputLongEdge, m.aspect) to m }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "restoring the waiting photo failed", e)
+                        null
+                    }
+                }
+            if (token != generation) return@launch // the user left meanwhile
+            ui.busy.isVisible = false
+            if (loaded == null) {
+                leave()
+                return@launch
+            }
+            val (base, m) = loaded
+            val data =
+                StampData.EMPTY
+                    .with(StampKeys.CAPTURE_TIME, m.captureTime)
+                    .with(StampKeys.USER_TEXT, m.userText)
+            Log.i(TAG, "restored a photo waiting for location, taken ${m.captureTime}")
+            if (settings.showLocation) waitForLocation(base, data, settings) else stampNow(base, data, settings)
+        }
+    }
+
     /** Every tracker update while the screen is up. */
     fun onLocation(status: LocationStatus) {
         val waiting = state as? State.Waiting ?: return
         val now = System.currentTimeMillis()
         if (PendingLocation.settled(status, now)) {
-            stamp(waiting.base, waiting.data.with(StampKeys.LOCATION, status.reading()), waiting.settings)
+            stamp(waiting.base, waiting.data.with(StampKeys.LOCATION, PendingLocation.current(status)), waiting.settings)
             return
         }
         val r = PendingLocation.readout(status, now, waiting.settings.coordinateFormat, labels())
@@ -121,7 +160,7 @@ class ReviewScreen(
 
     private fun useCurrent() {
         val waiting = state as? State.Waiting ?: return
-        stamp(waiting.base, waiting.data.with(StampKeys.LOCATION, tracker.status.reading()), waiting.settings)
+        stamp(waiting.base, waiting.data.with(StampKeys.LOCATION, PendingLocation.current(tracker.status)), waiting.settings)
     }
 
     private fun stamp(
@@ -150,6 +189,9 @@ class ReviewScreen(
                 }
             if (token != generation) return@launch // the user retook or left meanwhile
             ui.busy.isVisible = false
+            // Stamped or failed, the waiting copy has done its job. Cleared after the token check, so an
+            // abandoned stamp never deletes the next photo's copy.
+            store.clear()
             if (photo == null) {
                 toast(R.string.process_failed)
                 leave()
@@ -176,6 +218,7 @@ class ReviewScreen(
     fun leave() {
         val wasActive = isActive
         generation++
+        store.clear() // Retake or back: the user dropped this photo
         state = State.Idle
         ui.busy.isVisible = false
         ui.reviewImage.setImageDrawable(null)
@@ -224,6 +267,8 @@ class ReviewScreen(
     private fun labels() =
         PendingLocation.Labels(
             noFixYet = activity.getString(R.string.pending_no_fix),
+            servicesOff = activity.getString(R.string.pending_services_off),
+            denied = activity.getString(R.string.pending_denied),
             secondsAgo = { activity.getString(R.string.pending_seconds_ago, it) },
             minutesAgo = { activity.getString(R.string.pending_minutes_ago, it) },
         )

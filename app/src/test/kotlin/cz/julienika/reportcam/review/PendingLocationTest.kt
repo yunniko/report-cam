@@ -14,7 +14,7 @@ import org.junit.Test
 
 class PendingLocationTest {
     private val now = 1_800_000_000_000L
-    private val labels = PendingLocation.Labels("no position yet", { "$it s ago" }, { "$it min ago" })
+    private val labels = PendingLocation.Labels("no position yet", "location is off", "not allowed", { "$it s ago" }, { "$it min ago" })
 
     private fun fix(
         accuracy: Float?,
@@ -45,9 +45,26 @@ class PendingLocationTest {
     }
 
     @Test
-    fun losingLocationEndsTheWaitRatherThanHangingForever() {
-        assertTrue(PendingLocation.settled(status(null, LocationAccess.DENIED), now))
-        assertTrue(PendingLocation.settled(status(null, LocationAccess.SERVICES_OFF), now))
+    fun losingLocationKeepsThePhotoWaitingForTheUser() {
+        // Owner, 2026-11-03: switching location off or denying it must not stamp the photo by itself (D010).
+        assertFalse(PendingLocation.settled(status(fix(5f, 1_000), LocationAccess.DENIED), now))
+        assertFalse(PendingLocation.settled(status(fix(5f, 1_000), LocationAccess.SERVICES_OFF), now))
+        assertFalse(PendingLocation.settled(status(null, LocationAccess.SERVICES_OFF), now))
+    }
+
+    @Test
+    fun withLocationLostUseCurrentStampsNoFixEvenIfAnOldOneIsHeld() {
+        assertNull(PendingLocation.current(status(fix(5f, 1_000), LocationAccess.DENIED)))
+        assertEquals(LocationReading.None, PendingLocation.current(status(fix(5f, 1_000), LocationAccess.SERVICES_OFF)))
+        assertEquals(LocationReading.Fix(fix(500f, 0)), PendingLocation.current(status(fix(500f, 0))))
+    }
+
+    @Test
+    fun readoutSaysWhenLocationIsOffOrDenied() {
+        val off = PendingLocation.readout(status(fix(5f, 0), LocationAccess.SERVICES_OFF), now, CoordinateFormat.DECIMAL, labels)
+        assertEquals(PendingLocation.Readout("location is off", hasFix = false), off)
+        val denied = PendingLocation.readout(status(null, LocationAccess.DENIED), now, CoordinateFormat.DECIMAL, labels)
+        assertEquals(PendingLocation.Readout("not allowed", hasFix = false), denied)
     }
 
     @Test

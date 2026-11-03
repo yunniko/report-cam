@@ -35,6 +35,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import cz.julienika.reportcam.camera.CameraSession
+import cz.julienika.reportcam.camera.CapturedJpeg
 import cz.julienika.reportcam.camera.ExposureDefault
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
 import cz.julienika.reportcam.location.FixPolicy
@@ -44,6 +45,8 @@ import cz.julienika.reportcam.location.LocationPermissions
 import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.LocationTracker
 import cz.julienika.reportcam.photo.PhotoPipeline
+import cz.julienika.reportcam.review.PendingMeta
+import cz.julienika.reportcam.review.PendingStore
 import cz.julienika.reportcam.review.ReviewScreen
 import cz.julienika.reportcam.settings.AppSettings
 import cz.julienika.reportcam.settings.PrefsSource
@@ -79,6 +82,9 @@ class CameraActivity : ComponentActivity() {
 
     private val sharedDir by lazy { File(cacheDir, "shared") }
 
+    /** App-private files, not cache: the system may clear the cache while a photo waits (D010). */
+    private val pendingStore by lazy { PendingStore(File(filesDir, "pending")) }
+
     private val startupPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { onStartupPermissions() }
 
@@ -106,7 +112,9 @@ class CameraActivity : ComponentActivity() {
         session = CameraSession(this, ui.preview)
         tracker = LocationTracker(this)
         locationPermissions = LocationPermissions(this) { restartTracking() }
-        review = ReviewScreen(this, ui, tracker, sharedDir) { if (hasCameraPermission()) openCamera() }
+        review = ReviewScreen(this, ui, tracker, sharedDir, pendingStore) { if (hasCameraPermission()) openCamera() }
+        // A photo still waiting for its location from an earlier run comes back instead of the camera (D010).
+        if (review.hasSaved) review.restore(AppSettings.from(PrefsSource.of(this), stampLabels()))
         ui.preview.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
         // The whole frame, not a screen-filling crop: what the preview shows is what the photo holds (D009).
         ui.preview.scaleType = PreviewView.ScaleType.FIT_CENTER
@@ -315,7 +323,10 @@ class CameraActivity : ComponentActivity() {
             ui.busy.isVisible = true
             val base =
                 try {
-                    withContext(Dispatchers.Default) { PhotoPipeline(sharedDir).decode(jpeg, s.outputLongEdge, s.aspect) }
+                    withContext(Dispatchers.Default) {
+                        if (waitForFix) savePending(jpeg, data, s)
+                        PhotoPipeline(sharedDir).decode(jpeg, s.outputLongEdge, s.aspect)
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "decode failed", e)
                     null
@@ -330,6 +341,27 @@ class CameraActivity : ComponentActivity() {
                 waitForFix -> review.waitForLocation(base, data, s)
                 else -> review.stampNow(base, data, s)
             }
+        }
+    }
+
+    /** Off the main thread. A failed save costs only the restart safety net, never the photo itself. */
+    private fun savePending(
+        jpeg: CapturedJpeg,
+        data: StampData,
+        s: AppSettings,
+    ) {
+        val meta =
+            PendingMeta(
+                captureTime = data[StampKeys.CAPTURE_TIME] ?: ZonedDateTime.now(),
+                userText = data[StampKeys.USER_TEXT] ?: "",
+                rotationDegrees = jpeg.rotationDegrees,
+                outputLongEdge = s.outputLongEdge,
+                aspect = s.aspect,
+            )
+        try {
+            pendingStore.save(jpeg, meta)
+        } catch (e: Exception) {
+            Log.e(TAG, "could not keep the waiting photo on disk", e)
         }
     }
 

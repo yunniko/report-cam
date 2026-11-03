@@ -23,6 +23,8 @@
     <string name="pending_detecting">Detecting precise location…
 Now: %1$s</string>
     <string name="pending_no_fix">no position yet</string>
+    <string name="pending_services_off">location is off (tap the marker above)</string>
+    <string name="pending_denied">location not allowed (tap the marker above)</string>
     <string name="pending_seconds_ago">%1$d s ago</string>
     <string name="pending_minutes_ago">%1$d min ago</string>
     <string name="use_current">Use current</string>
