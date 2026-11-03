@@ -1,11 +1,11 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at a870fd4
+Last verified: 2026-11-03 at 68c2d55
 
-A native Android stamp camera for photo reports. Goal G-001 is in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
+A native Android stamp camera for photo reports. Open goals are in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
 
 ## Current state
 
-G-001 is done (signed off 2026-11-03, archived in `docs/goals-archive.md`); G-002 is planned, not started. State on the Pixel 3a
+G-001 is done (archived in `docs/goals-archive.md`); G-002 is active, M1 of 4 done. State on the Pixel 3a
 API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped 960×1280 JPEG (1280 px default) in 442–482 ms, shown for review; gallery copy in
   `Pictures/Report Cam`.
@@ -14,9 +14,11 @@ API 34 emulator at the commit above (debug build unless marked release):
   out when denied or off. Tapping it asks for permission or opens settings. Denied → no stamp line, no GPS tags.
 - Metadata: EXIF (time with offset, GPS, accuracy, ASCII description) and XMP with every field; Czech text
   round-trips. The stamp text is the share caption when the setting is on (default).
+- Wait for precise location (D008): the photo is taken at once and waits unstamped in review with a live readout of
+  the current fix and accuracy; Retake, Use current, or a precise fix stamps it. Sharing appears only once stamped.
 - Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 53 unit, 9 instrumented (including shoot → review → share end to end);
+- Tests: 62 unit, 12 instrumented (shoot → review → share end to end; deferred location through mock providers);
   `scripts/camera-release-check.sh` 10/10 on debug and release builds;
   one unexplained 3 s miss on its "home" step, not reproduced (GOALS.md log).
 - Release build 0.1.1: signed (D007), 1.40 MB; preview streaming 0.55–0.89 s after process start; capture 429 ms.
@@ -26,12 +28,15 @@ Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons
 ## How things fit together
 
 - `CameraActivity` is the only screen on the hot path, with two states (live camera, review) in one layout,
-  so no Activity launch sits between the shutter and sending. Settings is a separate AppCompat activity.
+  so no Activity launch sits between the shutter and sending. `review/ReviewScreen` owns the review half
+  (Waiting / Stamping / Ready, a generation counter drops stamps for abandoned photos); `PendingLocation`
+  holds its pure rules. Settings is a separate AppCompat activity.
 - `camera/CameraSession` owns CameraX: open in `onStart`, close in `onStop` and after every capture (D003).
 - `location/`: `LocationTracker` (platform LocationManager, started/stopped with the activity) and the pure
   `FixPolicy` and `LocationMarker` rules (D005). `LocationPermissions` decides prompt vs. settings.
 - `stamp/` is the extensible stamp (D004). Only `StampRenderer.kt` touches Android graphics.
-- `photo/PhotoPipeline` decodes, stamps and encodes off the main thread into `cacheDir/shared/`;
+- `photo/PhotoPipeline` works in two steps off the main thread: `decode` after capture, `finish` (stamp, encode
+  into `cacheDir/shared/`) once the stamp data is final;
   `ExifWriter` then adds `PhotoMetadata` (D006); `GallerySaver` copies to MediaStore.
 - Both activities call `enableEdgeToEdge` on every Android version (15+ enforces it) and place their bars
   from window insets; Settings has its own toolbar in `activity_settings.xml` for that reason.
@@ -51,7 +56,7 @@ Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons
 
 ## Next steps and open questions
 
-- G-002 (`GOALS.md`): plan proposed, waiting for the Owner's acceptance and answers on the open questions.
+- G-002 (`GOALS.md`): M2 next (aspect ratio, frame on all edges, default EV), then M3 place names, M4 release APK.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 
 ## Deploy log
