@@ -17,19 +17,27 @@ class ProcessedPhoto(
     val display: Bitmap,
 )
 
-/** Camera bytes in, a stamped JPEG file out. Runs off the main thread; touches no UI. */
+/**
+ * Camera bytes in, a stamped JPEG file out, in two steps so the stamp can wait for its data (D008):
+ * [decode] right after the shutter, [finish] once the stamp data is final. Runs off the main thread.
+ */
 class PhotoPipeline(
     private val outputDir: File,
 ) {
-    fun process(
+    /** The upright photo at output size, not yet stamped. */
+    fun decode(
         jpeg: CapturedJpeg,
         longEdge: Int,
+    ): Bitmap = PhotoDecoder.decodeUpright(jpeg.bytes, jpeg.rotationDegrees, longEdge)
+
+    /** Stamps [base], writes the JPEG and returns it with a display copy. [base] is consumed: do not use it after. */
+    fun finish(
+        base: Bitmap,
         spec: StampSpec,
         data: StampData,
         displayLongEdge: Int,
     ): ProcessedPhoto {
-        val upright = PhotoDecoder.decodeUpright(jpeg.bytes, jpeg.rotationDegrees, longEdge)
-        val stamped = StampRenderer.render(upright, spec, data)
+        val stamped = StampRenderer.render(base, spec, data)
         outputDir.mkdirs()
         val name = "report_" + FILE_TIME.format(data[StampKeys.CAPTURE_TIME]) + ".jpg"
         val file = File(outputDir, name)

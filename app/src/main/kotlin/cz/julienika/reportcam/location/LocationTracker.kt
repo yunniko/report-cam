@@ -25,6 +25,10 @@ data class LocationStatus(
     val updating: Boolean,
 )
 
+/** What a stamp made from this status carries: null with no permission (no line), [LocationReading.None] with no fix. */
+fun LocationStatus.reading(): LocationReading? =
+    if (access == LocationAccess.DENIED) null else fix?.let { LocationReading.Fix(it) } ?: LocationReading.None
+
 /**
  * Foreground-only location. [start] in onStart begins a search; once a precise fix arrives the receiver
  * goes off, and a new search starts after a rest (Owner: tracked in reasonable cycles while the app runs,
@@ -63,10 +67,7 @@ class LocationTracker(
     }
 
     /** What a capture right now puts on the stamp: null with no permission (no line at all). */
-    fun reading(): LocationReading? {
-        if (access() == LocationAccess.DENIED) return null
-        return best?.let { LocationReading.Fix(it) } ?: LocationReading.None
-    }
+    fun reading(): LocationReading? = LocationStatus(access(), best, false).reading()
 
     fun start() {
         running = true

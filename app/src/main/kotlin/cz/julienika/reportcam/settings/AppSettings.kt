@@ -76,6 +76,7 @@ data class AppSettings(
     val userText: String,
     val showLocation: Boolean,
     val waitForPrecise: Boolean,
+    val coordinateFormat: CoordinateFormat,
     val outputLongEdge: Int,
     val saveToGallery: Boolean,
     /** Send the stamp text as the share's caption (Owner, 2026-11-03). */
@@ -87,21 +88,19 @@ data class AppSettings(
             labels: LocationLabels = LocationLabels(),
         ): AppSettings {
             val showLocation = s.bool(Keys.SHOW_LOCATION, true)
+            val format = if (s.string(Keys.COORD_FORMAT, "decimal") == "dms") CoordinateFormat.DMS else CoordinateFormat.DECIMAL
             val fields = mutableListOf<StampField>(TextField())
             if (s.bool(Keys.SHOW_DATETIME, true)) {
                 fields += DateTimeField(safePattern(s.string(Keys.DATETIME_PATTERN, Keys.DEFAULT_PATTERN)))
             }
-            if (showLocation) {
-                val format =
-                    if (s.string(Keys.COORD_FORMAT, "decimal") == "dms") CoordinateFormat.DMS else CoordinateFormat.DECIMAL
-                fields += CoordinatesField(format, labels)
-            }
+            if (showLocation) fields += CoordinatesField(format, labels)
             val spec = StampSpec(fields, placement(s.string(Keys.PLACEMENT, Keys.DEFAULT_PLACEMENT)), style(s))
             return AppSettings(
                 stampSpec = spec,
                 userText = s.string(Keys.STAMP_TEXT, "").trim(),
                 showLocation = showLocation,
                 waitForPrecise = showLocation && s.bool(Keys.WAIT_PRECISE, false),
+                coordinateFormat = format,
                 outputLongEdge = s.string(Keys.OUTPUT_SIZE, Keys.DEFAULT_OUTPUT_SIZE).toIntOrNull() ?: 1280,
                 saveToGallery = s.bool(Keys.SAVE_GALLERY, true),
                 caption = s.bool(Keys.CAPTION, true),

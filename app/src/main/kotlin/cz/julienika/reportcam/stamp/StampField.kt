@@ -77,7 +77,7 @@ class CoordinatesField(
         val q = FixQuality.of(fix, at)
         val sb = StringBuilder()
         if (q.approximate) sb.append(APPROX_SIGN)
-        sb.append(coordinates(fix.latitude, fix.longitude))
+        sb.append(position(fix.latitude, fix.longitude, format))
         fix.accuracyM?.let { sb.append(" ").append(PLUS_MINUS).append(formatDistance(it)) }
         val notes = mutableListOf<String>()
         if (q.approximate) notes += labels.approximate
@@ -85,15 +85,6 @@ class CoordinatesField(
         if (notes.isNotEmpty()) sb.append(" (").append(notes.joinToString(", ")).append(')')
         return sb.toString()
     }
-
-    private fun coordinates(
-        lat: Double,
-        lon: Double,
-    ): String =
-        when (format) {
-            CoordinateFormat.DECIMAL -> String.format(Locale.ROOT, "%.5f, %.5f", lat, lon)
-            CoordinateFormat.DMS -> "${dms(lat, 'N', 'S')} ${dms(lon, 'E', 'W')}"
-        }
 
     private fun formatAge(ms: Long): String {
         val minutes = (ms / 60_000).toInt()
@@ -103,6 +94,17 @@ class CoordinatesField(
     companion object {
         const val APPROX_SIGN = '≈'
         const val PLUS_MINUS = '±'
+
+        /** The coordinates alone, in the chosen format; shared with the review screen's live readout. */
+        fun position(
+            lat: Double,
+            lon: Double,
+            format: CoordinateFormat,
+        ): String =
+            when (format) {
+                CoordinateFormat.DECIMAL -> String.format(Locale.ROOT, "%.5f, %.5f", lat, lon)
+                CoordinateFormat.DMS -> "${dms(lat, 'N', 'S')} ${dms(lon, 'E', 'W')}"
+            }
 
         fun formatDistance(m: Float): String =
             if (m < 1000f) "${m.roundToInt()} m" else String.format(Locale.ROOT, "%.1f km", m / 1000f)

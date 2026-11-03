@@ -20,7 +20,13 @@
     <string name="marker_approximate">approximate</string>
     <string name="marker_approx_only">approximate only, tap for precise</string>
     <string name="marker_none">No fix yet</string>
-    <string name="waiting_precise">Waiting for precise location. Tap to take now.</string>
+    <string name="pending_detecting">Detecting precise location…
+Now: %1$s</string>
+    <string name="pending_no_fix">no position yet</string>
+    <string name="pending_seconds_ago">%1$d s ago</string>
+    <string name="pending_minutes_ago">%1$d min ago</string>
+    <string name="use_current">Use current</string>
+    <string name="use_without_location">No location</string>
     <string name="stamp_location_unavailable">Location unavailable</string>
     <string name="stamp_approximate">approximate</string>
     <string name="stamp_minutes_old">%1$d min old</string>

@@ -14,6 +14,8 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import cz.julienika.reportcam.helpers.view
+import cz.julienika.reportcam.helpers.waitFor
 import cz.julienika.reportcam.settings.Keys
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -52,29 +54,12 @@ class CaptureFlowTest {
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit()
     }
 
-    private fun ActivityScenario<CameraActivity>.waitFor(
-        what: String,
-        timeoutMs: Long = 15_000,
-        condition: (CameraActivity) -> Boolean,
-    ) {
-        val end = System.currentTimeMillis() + timeoutMs
-        while (System.currentTimeMillis() < end) {
-            var ok = false
-            onActivity { ok = condition(it) }
-            if (ok) return
-            Thread.sleep(100)
-        }
-        throw AssertionError("timed out waiting for $what")
-    }
-
-    private fun CameraActivity.view(id: Int): View = findViewById(id)
-
     @Test
     fun shootReviewAndShareWithCaption() {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("live preview") { it.view(R.id.shutter).isEnabled }
             s.onActivity { it.view(R.id.shutter).performClick() }
-            s.waitFor("review") { it.view(R.id.review_controls).visibility == View.VISIBLE }
+            s.waitFor("stamped review") { it.view(R.id.share_other).visibility == View.VISIBLE }
             s.onActivity {
                 assertEquals(View.GONE, it.view(R.id.camera_controls).visibility)
                 it.view(R.id.share_other).performClick()
@@ -95,7 +80,7 @@ class CaptureFlowTest {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("live preview") { it.view(R.id.shutter).isEnabled }
             s.onActivity { it.view(R.id.shutter).performClick() }
-            s.waitFor("review") { it.view(R.id.review_controls).visibility == View.VISIBLE }
+            s.waitFor("stamped review") { it.view(R.id.share_other).visibility == View.VISIBLE }
             s.onActivity { it.view(R.id.share_other).performClick() }
             val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
             @Suppress("DEPRECATION")

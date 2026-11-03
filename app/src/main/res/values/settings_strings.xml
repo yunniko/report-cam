@@ -15,7 +15,7 @@
     <string name="pref_show_location">Show location</string>
     <string name="pref_coord_format">Coordinates</string>
     <string name="pref_wait_precise">Wait for precise location</string>
-    <string name="pref_wait_precise_summary">The shutter waits for a precise, fresh fix. Tap it again to take the photo anyway.</string>
+    <string name="pref_wait_precise_summary">The photo is taken at once and stamped when a precise fix arrives. Until then you can retake it or use the current position.</string>
 
     <string name="pref_cat_look">Look</string>
     <string name="pref_placement">Stamp position</string>

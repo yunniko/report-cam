@@ -7,3 +7,4 @@
 - D005 — Location is tracked in a foreground duty cycle, never on capture — active
 - D006 — Small output by default; stamp data in EXIF + ASCII-safe XMP and as the share caption — active
 - D007 — Release key lives in the user profile, its password in git-ignored properties — active
+- D008 — With "wait for precise location", the photo is taken at once and stamped when the fix settles — active

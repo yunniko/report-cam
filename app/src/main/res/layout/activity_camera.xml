@@ -91,18 +91,6 @@
         android:orientation="vertical"
         android:paddingTop="12dp">
 
-        <TextView
-            android:id="@+id/wait_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="#99000000"
-            android:padding="8dp"
-            android:text="@string/waiting_precise"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
         <LinearLayout
             android:id="@+id/exposure_row"
             android:layout_width="match_parent"
@@ -161,32 +149,72 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="#99000000"
-        android:gravity="center"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="12dp"
         android:visibility="gone">
 
-        <Button
-            android:id="@+id/retake"
-            style="@style/ReviewButton"
-            android:text="@string/retake" />
+        <!-- Shown while the photo waits for a precise fix (D008). -->
+        <LinearLayout
+            android:id="@+id/pending_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:visibility="gone">
 
-        <Button
-            android:id="@+id/share_whatsapp"
-            style="@style/ReviewButton"
-            android:text="@string/share_whatsapp"
-            android:visibility="gone" />
+            <ProgressBar
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:indeterminateTint="@color/accent" />
 
-        <Button
-            android:id="@+id/share_telegram"
-            style="@style/ReviewButton"
-            android:text="@string/share_telegram"
-            android:visibility="gone" />
+            <TextView
+                android:id="@+id/pending_status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
+        </LinearLayout>
 
-        <Button
-            android:id="@+id/share_other"
-            style="@style/ReviewButton"
-            android:text="@string/share_other" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/retake"
+                style="@style/ReviewButton"
+                android:text="@string/retake" />
+
+            <Button
+                android:id="@+id/use_current"
+                style="@style/ReviewButton"
+                android:text="@string/use_current"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/share_whatsapp"
+                style="@style/ReviewButton"
+                android:text="@string/share_whatsapp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/share_telegram"
+                style="@style/ReviewButton"
+                android:text="@string/share_telegram"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/share_other"
+                style="@style/ReviewButton"
+                android:text="@string/share_other"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 
     <ProgressBar

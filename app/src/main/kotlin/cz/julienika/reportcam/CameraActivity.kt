@@ -42,17 +42,12 @@ import cz.julienika.reportcam.location.LocationMarker
 import cz.julienika.reportcam.location.LocationPermissions
 import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.LocationTracker
-import cz.julienika.reportcam.photo.ExifWriter
-import cz.julienika.reportcam.photo.GallerySaver
-import cz.julienika.reportcam.photo.PhotoMetadata
 import cz.julienika.reportcam.photo.PhotoPipeline
-import cz.julienika.reportcam.photo.ProcessedPhoto
+import cz.julienika.reportcam.review.ReviewScreen
 import cz.julienika.reportcam.settings.AppSettings
 import cz.julienika.reportcam.settings.PrefsSource
 import cz.julienika.reportcam.settings.SettingsActivity
 import cz.julienika.reportcam.share.SharedFiles
-import cz.julienika.reportcam.share.ShareTargets
-import cz.julienika.reportcam.share.Sharing
 import cz.julienika.reportcam.stamp.LocationLabels
 import cz.julienika.reportcam.stamp.StampData
 import cz.julienika.reportcam.stamp.StampKeys
@@ -63,7 +58,7 @@ import java.io.File
 import java.time.ZonedDateTime
 
 /**
- * The one screen on the hot path: live camera, then review of the stamped photo, then send. The camera
+ * The one screen on the hot path: live camera, then review and send ([ReviewScreen]). The camera
  * is open only while the live preview shows (D003); location is tracked only while visible (D005).
  */
 class CameraActivity : ComponentActivity() {
@@ -73,13 +68,7 @@ class CameraActivity : ComponentActivity() {
     private lateinit var locationPermissions: LocationPermissions
     private lateinit var settings: AppSettings
 
-    private var reviewing = false
-    private var current: ProcessedPhoto? = null
-
-    /** The stamp as plain text, sent as the message when the caption setting is on. */
-    private var currentCaption: String? = null
-    private var sentSinceCapture = false
-    private var waitingForPrecise = false
+    private lateinit var review: ReviewScreen
     private var capturing = false
     private var loggedStartup = false
     private var pulse: ObjectAnimator? = null
@@ -113,6 +102,7 @@ class CameraActivity : ComponentActivity() {
         session = CameraSession(this, ui.preview)
         tracker = LocationTracker(this)
         locationPermissions = LocationPermissions(this) { restartTracking() }
+        review = ReviewScreen(this, ui, tracker, sharedDir) { if (hasCameraPermission()) openCamera() }
         ui.preview.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
 
         ViewCompat.setOnApplyWindowInsetsListener(ui.root) { _, insets ->
@@ -135,10 +125,6 @@ class CameraActivity : ComponentActivity() {
         tracker.onStatus = ::onLocationStatus
 
         ui.shutter.setOnClickListener { onShutter() }
-        ui.retake.setOnClickListener { backToCamera() }
-        ui.shareWhatsapp.setOnClickListener { share(ShareTargets.WHATSAPP) }
-        ui.shareTelegram.setOnClickListener { share(ShareTargets.TELEGRAM) }
-        ui.shareOther.setOnClickListener { share(null) }
         ui.settings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         ui.locationMarker.setOnClickListener { locationPermissions.resolve(tracker.access()) }
         ui.grantPermission.setOnClickListener { requestStartupPermissions() }
@@ -148,11 +134,7 @@ class CameraActivity : ComponentActivity() {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    when {
-                        waitingForPrecise -> stopWaiting()
-                        reviewing -> backToCamera()
-                        else -> finish()
-                    }
+                    if (review.isActive) review.leave() else finish()
                 }
             },
         )
@@ -165,10 +147,10 @@ class CameraActivity : ComponentActivity() {
         // Settings may have changed while the settings screen was open.
         settings = AppSettings.from(PrefsSource.of(this), stampLabels())
         // After a send, coming back means "next photo", not the old review.
-        if (reviewing && sentSinceCapture) leaveReview()
+        if (review.isActive && review.sentSinceCapture) review.leave()
         if (hasCameraPermission()) {
             ui.permissionPanel.isVisible = false
-            if (!reviewing) openCamera()
+            if (!review.isActive) openCamera()
         } else {
             requestStartupPermissions()
         }
@@ -181,7 +163,6 @@ class CameraActivity : ComponentActivity() {
         // Release the camera the moment the app is not visible: home, share sheet, screen off. See D003.
         session.close()
         tracker.stop()
-        stopWaiting()
         orientationListener.disable()
         super.onStop()
     }
@@ -287,43 +268,20 @@ class CameraActivity : ComponentActivity() {
 
     private fun onShutter() {
         if (!session.isOpen || capturing) return
-        if (waitingForPrecise) {
-            // Second tap while waiting: the user chose not to wait.
-            stopWaiting()
-            takePhoto()
-            return
-        }
-        if (settings.waitForPrecise && shouldWaitForFix(tracker.status)) {
-            waitingForPrecise = true
-            ui.waitHint.isVisible = true
-            tracker.ensureSearching()
-            return
-        }
-        takePhoto()
-    }
-
-    private fun shouldWaitForFix(s: LocationStatus) = FixPolicy.shouldWait(s, System.currentTimeMillis())
-
-    private fun stopWaiting() {
-        waitingForPrecise = false
-        ui.waitHint.isVisible = false
-    }
-
-    private fun takePhoto() {
         capturing = true
         ui.shutter.isEnabled = false
         ui.flash.alpha = 1f
         ui.flash.animate().alpha(0f).setDuration(FLASH_MS).start()
-        // The newest fix at the moment of the shutter; capture itself never asks for one.
-        val reading = if (settings.showLocation) tracker.reading() else null
+        // The newest fix at the moment of the shutter; capture itself never asks for one (D005). With
+        // "wait for precise location", a fix that is not good enough sends the photo to wait in review (D008).
+        val s = settings
+        val waitForFix = s.waitForPrecise && FixPolicy.shouldWait(tracker.status, System.currentTimeMillis())
         val data =
             StampData.EMPTY
                 .with(StampKeys.CAPTURE_TIME, ZonedDateTime.now())
-                .with(StampKeys.USER_TEXT, settings.userText)
-                .with(StampKeys.LOCATION, reading)
-        val s = settings
+                .with(StampKeys.USER_TEXT, s.userText)
+                .with(StampKeys.LOCATION, if (s.showLocation) tracker.reading() else null)
         lifecycleScope.launch {
-            val started = SystemClock.elapsedRealtime()
             val jpeg =
                 try {
                     session.capture()
@@ -337,86 +295,24 @@ class CameraActivity : ComponentActivity() {
             // Nothing needs the sensor while the photo is reviewed: release it now, not at onStop.
             session.close()
             ui.busy.isVisible = true
-            val displayEdge = maxOf(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
-            val result =
+            val base =
                 try {
-                    withContext(Dispatchers.Default) {
-                        val photo = PhotoPipeline(sharedDir).process(jpeg, s.outputLongEdge, s.stampSpec, data, displayEdge)
-                        ExifWriter.write(photo.file, PhotoMetadata.of(s.stampSpec, data))
-                        photo
-                    }
+                    withContext(Dispatchers.Default) { PhotoPipeline(sharedDir).decode(jpeg, s.outputLongEdge) }
                 } catch (e: Exception) {
-                    Log.e(TAG, "processing failed", e)
+                    Log.e(TAG, "decode failed", e)
                     null
                 }
             capturing = false
             ui.busy.isVisible = false
-            if (result == null) {
-                toast(R.string.process_failed)
-                backToCamera()
-                return@launch
+            when {
+                base == null -> {
+                    toast(R.string.process_failed)
+                    if (hasCameraPermission()) openCamera()
+                }
+                waitForFix -> review.waitForLocation(base, data, s)
+                else -> review.stampNow(base, data, s)
             }
-            Log.i(TAG, "photo ${result.width}x${result.height} ready in ${SystemClock.elapsedRealtime() - started}ms")
-            showReview(result, PhotoMetadata.of(s.stampSpec, data).stampText)
-            if (s.saveToGallery) saveToGallery(result, data)
         }
-    }
-
-    private fun saveToGallery(
-        photo: ProcessedPhoto,
-        data: StampData,
-    ) {
-        val takenAt = data[StampKeys.CAPTURE_TIME]?.toInstant()?.toEpochMilli() ?: System.currentTimeMillis()
-        lifecycleScope.launch {
-            val ok = withContext(Dispatchers.IO) { GallerySaver.save(applicationContext, photo.file, takenAt) }
-            if (!ok) toast(R.string.gallery_failed)
-        }
-    }
-
-    // ---- review and share ---------------------------------------------------------------------
-
-    private fun showReview(
-        photo: ProcessedPhoto,
-        caption: String,
-    ) {
-        reviewing = true
-        sentSinceCapture = false
-        current = photo
-        currentCaption = caption
-        ui.reviewImage.setImageBitmap(photo.display)
-        ui.reviewImage.isVisible = true
-        ui.reviewControls.isVisible = true
-        ui.cameraControls.isVisible = false
-        ui.preview.isVisible = false
-        ui.shareWhatsapp.isVisible = installed(ShareTargets.WHATSAPP) != null
-        ui.shareTelegram.isVisible = installed(ShareTargets.TELEGRAM) != null
-    }
-
-    private fun share(targets: List<String>?) {
-        val photo = current ?: return
-        val pkg = targets?.let { installed(it) }
-        if (targets != null && pkg == null) return
-        val caption = if (settings.caption) currentCaption else null
-        sentSinceCapture = true
-        startActivity(Sharing.sendIntent(this, photo.file, caption, pkg))
-    }
-
-    private fun installed(candidates: List<String>) = ShareTargets.firstInstalled(candidates) { Sharing.isInstalled(this, it) }
-
-    private fun leaveReview() {
-        reviewing = false
-        current = null
-        currentCaption = null
-        ui.reviewImage.setImageDrawable(null)
-        ui.reviewImage.isVisible = false
-        ui.reviewControls.isVisible = false
-        ui.cameraControls.isVisible = true
-        ui.preview.isVisible = true
-    }
-
-    private fun backToCamera() {
-        leaveReview()
-        if (hasCameraPermission()) openCamera()
     }
 
     // ---- location marker ----------------------------------------------------------------------
@@ -440,10 +336,7 @@ class CameraActivity : ComponentActivity() {
         ui.locationStatus.text = m.text
         ui.locationStatus.setTextColor(if (m.tone == LocationMarker.Tone.GRAY) GRAY else WHITE)
         setPulsing(m.pulsing)
-        if (waitingForPrecise && !shouldWaitForFix(status)) {
-            stopWaiting()
-            if (session.isOpen) takePhoto()
-        }
+        review.onLocation(status)
     }
 
     private fun setPulsing(on: Boolean) {
@@ -487,7 +380,7 @@ class CameraActivity : ComponentActivity() {
     private fun onStartupPermissions() {
         val granted = hasCameraPermission()
         ui.permissionPanel.isVisible = !granted
-        if (granted && !reviewing) openCamera()
+        if (granted && !review.isActive) openCamera()
         restartTracking()
     }
 
