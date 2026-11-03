@@ -33,7 +33,8 @@ object FixPolicy {
     fun satisfied(
         fix: GeoFix?,
         nowMillis: Long,
-    ): Boolean = fix != null && FixQuality.of(fix, nowMillis).precise && nowMillis - fix.timeMillis < REST_MS
+        preciseWithinM: Float,
+    ): Boolean = fix != null && FixQuality.of(fix, nowMillis, preciseWithinM).precise && nowMillis - fix.timeMillis < REST_MS
 
     /**
      * Whether a shutter press with "wait for precise location" on should hold the photo. Never when there is
@@ -42,10 +43,11 @@ object FixPolicy {
     fun shouldWait(
         status: LocationStatus,
         nowMillis: Long,
+        preciseWithinM: Float,
     ): Boolean {
         if (status.access == LocationAccess.DENIED || status.access == LocationAccess.SERVICES_OFF) return false
         val fix = status.fix ?: return true
-        return !FixQuality.of(fix, nowMillis).precise
+        return !FixQuality.of(fix, nowMillis, preciseWithinM).precise
     }
 
     private const val RECENT_MS = 20_000L

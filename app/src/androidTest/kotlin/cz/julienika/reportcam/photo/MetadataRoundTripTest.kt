@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.photo
 
+import cz.julienika.reportcam.stamp.FixQuality
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -71,7 +72,7 @@ class MetadataRoundTripTest {
         val fix = GeoFix(50.087654, 14.421329, 6.5f, System.currentTimeMillis() - 4_000, false)
         val d = data(LocationReading.Fix(fix))
         val file = jpeg()
-        ExifWriter.write(file, PhotoMetadata.of(spec, d))
+        ExifWriter.write(file, PhotoMetadata.of(spec, d, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
 
         val exif = ExifInterface(file)
         val latLong = exif.latLong
@@ -96,7 +97,7 @@ class MetadataRoundTripTest {
     fun deniedLocationWritesNoGps() {
         val spec = AppSettings.from(noSettings).stampSpec
         val file = jpeg()
-        ExifWriter.write(file, PhotoMetadata.of(spec, data(null)))
+        ExifWriter.write(file, PhotoMetadata.of(spec, data(null), preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
         assertNull(ExifInterface(file).latLong)
         file.delete()
     }

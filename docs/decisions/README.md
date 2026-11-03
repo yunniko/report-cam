@@ -19,3 +19,6 @@
 - D017 — The gallery gets at most one copy, saved on send or by the Save button — active
 - D018 — The day of the week is off by default and prints before the date — active
 - D019 — A restamp redraws from the kept camera JPEG into a new, suffixed file — active
+- D020 — "Precise" means within 5, 10, 20, 30 or 50 m, default 20 m — active
+- D021 — Settings controls are custom Preference rows, drawn as cards by one decoration — active
+- D022 — The app theme is applied per screen; the live camera view stays black — active

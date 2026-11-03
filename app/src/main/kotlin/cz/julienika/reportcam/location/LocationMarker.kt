@@ -28,6 +28,7 @@ data class LocationMarker(
             status: LocationStatus,
             nowMillis: Long,
             labels: Labels = Labels(),
+            preciseWithinM: Float,
         ): LocationMarker {
             when (status.access) {
                 LocationAccess.DENIED -> return LocationMarker(Tone.GRAY, true, labels.denied, false)
@@ -35,7 +36,7 @@ data class LocationMarker(
                 else -> Unit
             }
             val fix = status.fix ?: return LocationMarker(Tone.AMBER, false, labels.searching, status.updating)
-            val q = FixQuality.of(fix, nowMillis)
+            val q = FixQuality.of(fix, nowMillis, preciseWithinM)
             val parts = mutableListOf<String>()
             parts +=
                 (if (q.approximate) "${CoordinatesField.APPROX_SIGN} " else "") +

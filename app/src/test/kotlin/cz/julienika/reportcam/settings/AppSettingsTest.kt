@@ -253,4 +253,41 @@ class AppSettingsTest {
         assertTrue(dateLine(Keys.SHOW_WEEKDAY to true).endsWith(" 2026-11-03 13:38:47"))
         assertEquals(dateLine(Keys.SHOW_WEEKDAY to true), dateLine(Keys.SHOW_WEEKDAY to true, Keys.DATETIME_PATTERN to Keys.DEFAULT_PATTERN))
     }
+
+    @Test
+    fun theAccuracyThresholdIsOneOfTheChoicesAndDefaultsTo20m() {
+        assertEquals(20f, AppSettings.from(FakeSource()).preciseWithinM)
+        assertEquals(5f, AppSettings.from(FakeSource(Keys.PRECISE_ACCURACY to "5")).preciseWithinM)
+        assertEquals(50f, AppSettings.from(FakeSource(Keys.PRECISE_ACCURACY to "50")).preciseWithinM)
+        for (bad in listOf("7", "", "abc", "-20")) {
+            assertEquals("'$bad' falls back", 20f, AppSettings.from(FakeSource(Keys.PRECISE_ACCURACY to bad)).preciseWithinM)
+        }
+    }
+
+    @Test
+    fun theAccuracyThresholdReachesTheStampedLocation() {
+        val at15 = StampData.EMPTY.with(StampKeys.LOCATION, LocationReading.Fix(GeoFix(50.08765, 14.42133, 15f, System.currentTimeMillis())))
+        fun lines(threshold: String) =
+            AppSettings.from(FakeSource(Keys.PRECISE_ACCURACY to threshold)).stampSpec.fields.flatMap { it.lines(at15) }.joinToString("|")
+        assertFalse(lines("20").contains("approximate"))
+        assertTrue(lines("10").contains("approximate"))
+    }
+
+    @Test
+    fun anUnknownThemeFollowsTheSystem() {
+        assertEquals(AppTheme.SYSTEM, AppTheme.of(null))
+        assertEquals(AppTheme.SYSTEM, AppTheme.of("sepia"))
+        assertEquals(AppTheme.DARK, AppTheme.of("dark"))
+        assertEquals(AppTheme.LIGHT, AppTheme.of("light"))
+    }
+
+    @Test
+    fun theThemeReachesTheReviewControls() {
+        assertEquals(AppTheme.SYSTEM, AppSettings.from(FakeSource()).appTheme)
+        assertEquals(AppTheme.LIGHT, AppSettings.from(FakeSource(Keys.APP_THEME to "light")).appTheme)
+        assertTrue(AppTheme.SYSTEM.isDark(systemDark = true))
+        assertFalse(AppTheme.SYSTEM.isDark(systemDark = false))
+        assertFalse(AppTheme.LIGHT.isDark(systemDark = true))
+        assertTrue(AppTheme.DARK.isDark(systemDark = false))
+    }
 }

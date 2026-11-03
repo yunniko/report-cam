@@ -193,7 +193,7 @@ class CameraActivity : ComponentActivity() {
             requestStartupPermissions()
         }
         // Location refreshes on every start and wake, never on capture (Owner, 2026-11-03).
-        if (settings.showLocation) tracker.start() else onLocationStatus(tracker.status)
+        if (settings.showLocation) tracker.start(settings.preciseWithinM) else onLocationStatus(tracker.status)
         orientationListener.enable()
     }
 
@@ -326,7 +326,7 @@ class CameraActivity : ComponentActivity() {
         // The newest fix at the moment of the shutter; capture itself never asks for one (D005). With
         // "wait for precise location", a fix that is not good enough sends the photo to wait in review (D008).
         val s = settings
-        val waitForFix = s.waitForPrecise && FixPolicy.shouldWait(tracker.status, System.currentTimeMillis())
+        val waitForFix = s.waitForPrecise && FixPolicy.shouldWait(tracker.status, System.currentTimeMillis(), s.preciseWithinM)
         val data =
             StampData.EMPTY
                 .with(StampKeys.CAPTURE_TIME, ZonedDateTime.now())
@@ -400,7 +400,7 @@ class CameraActivity : ComponentActivity() {
             setPulsing(false)
             return
         }
-        val m = LocationMarker.of(status, System.currentTimeMillis(), markerLabels())
+        val m = LocationMarker.of(status, System.currentTimeMillis(), markerLabels(), settings.preciseWithinM)
         ui.locationIcon.setImageResource(if (m.crossedOut) R.drawable.ic_location_off else R.drawable.ic_location_on)
         val color =
             when (m.tone) {
@@ -434,7 +434,7 @@ class CameraActivity : ComponentActivity() {
     private fun restartTracking() {
         tracker.stop()
         if (settings.showLocation && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
-            tracker.start()
+            tracker.start(settings.preciseWithinM)
         }
     }
 

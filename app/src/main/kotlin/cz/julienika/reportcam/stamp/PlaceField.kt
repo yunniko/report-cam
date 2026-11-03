@@ -58,6 +58,7 @@ enum class PlaceFormat(
  */
 class PlaceField(
     private val format: PlaceFormat,
+    private val preciseWithinM: Float,
 ) : StampField {
     override val id = "place"
 
@@ -65,7 +66,7 @@ class PlaceField(
         val place = data[StampKeys.PLACE] ?: return emptyList()
         val fix = (data[StampKeys.LOCATION] as? LocationReading.Fix)?.fix ?: return emptyList()
         val at = data[StampKeys.CAPTURE_TIME]?.toInstant()?.toEpochMilli() ?: fix.timeMillis
-        val approximate = FixQuality.of(fix, at).approximate
+        val approximate = FixQuality.of(fix, at, preciseWithinM).approximate
         val text = (if (approximate) PlaceFormat.CITY else format).format(place) ?: return emptyList()
         return listOf(if (approximate) "${CoordinatesField.APPROX_SIGN}$text" else text)
     }

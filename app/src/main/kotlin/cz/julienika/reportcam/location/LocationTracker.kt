@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
+import cz.julienika.reportcam.stamp.FixQuality
 import cz.julienika.reportcam.stamp.GeoFix
 import cz.julienika.reportcam.stamp.LocationReading
 
@@ -48,6 +49,9 @@ class LocationTracker(
 
     var onStatus: ((LocationStatus) -> Unit)? = null
 
+    /** The user's precise radius from Settings, given to [start]; a search ends once a fix is within it. */
+    private var preciseWithinM = FixQuality.DEFAULT_PRECISE_M
+
     var status: LocationStatus = LocationStatus(LocationAccess.DENIED, null, false)
         private set
 
@@ -69,7 +73,8 @@ class LocationTracker(
     /** What a capture right now puts on the stamp: null with no permission (no line at all). */
     fun reading(): LocationReading? = LocationStatus(access(), best, false).reading()
 
-    fun start() {
+    fun start(preciseWithinM: Float) {
+        this.preciseWithinM = preciseWithinM
         running = true
         seedFromLastKnown()
         beginSearch()
@@ -132,7 +137,7 @@ class LocationTracker(
     private fun onLocation(location: Location) {
         val fix = location.toFix(coarseOnly = access() == LocationAccess.APPROXIMATE_ONLY)
         if (FixPolicy.better(best, fix)) best = fix
-        if (searching && FixPolicy.satisfied(best, System.currentTimeMillis())) endSearch() else publish()
+        if (searching && FixPolicy.satisfied(best, System.currentTimeMillis(), preciseWithinM)) endSearch() else publish()
     }
 
     @SuppressLint("MissingPermission") // checked by access() before every call path

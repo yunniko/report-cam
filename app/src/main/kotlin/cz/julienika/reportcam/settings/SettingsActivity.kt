@@ -1,9 +1,9 @@
 package cz.julienika.reportcam.settings
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -12,14 +12,23 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceGroup
 import cz.julienika.reportcam.R
 import cz.julienika.reportcam.location.LocationAccess
 import cz.julienika.reportcam.location.LocationPermissions
 import cz.julienika.reportcam.location.LocationTracker
-import cz.julienika.reportcam.share.Messenger
+import cz.julienika.reportcam.settings.ui.CardDecoration
 
 class SettingsActivity : AppCompatActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        // This screen only: the camera and review screens stay dark. Set before AppCompat builds this screen's
+        // configuration; set later, the window keeps the old theme's background.
+        delegate.localNightMode = AppTheme.of(PrefsSource.of(newBase).string(Keys.APP_THEME, "")).nightMode
+        super.attachBaseContext(newBase)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge to edge on every version, not only where Android 15+ enforces it, so all devices lay out alike.
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
@@ -65,11 +74,10 @@ class SettingsActivity : AppCompatActivity() {
                 permissions.resolve(LocationTracker(requireContext()).access())
                 true
             }
-            // At most three quick buttons (Owner, 2026-11-03): a fourth tick is refused, not silently dropped.
-            findPreference<Preference>(Keys.QUICK_MESSENGERS)?.setOnPreferenceChangeListener { _, value ->
-                val ok = (value as? Set<*>)?.size?.let { it <= Messenger.QUICK_MAX } ?: true
-                if (!ok) Toast.makeText(requireContext(), R.string.pref_quick_too_many, Toast.LENGTH_SHORT).show()
-                ok
+            // Applying the mode recreates this screen in the new theme.
+            findPreference<Preference>(Keys.APP_THEME)?.setOnPreferenceChangeListener { _, value ->
+                (requireActivity() as AppCompatActivity).delegate.localNightMode = AppTheme.of(value as? String).nightMode
+                true
             }
         }
 
@@ -78,6 +86,8 @@ class SettingsActivity : AppCompatActivity() {
             savedInstanceState: Bundle?,
         ) {
             super.onViewCreated(view, savedInstanceState)
+            setDivider(null)
+            listView.addItemDecoration(CardDecoration(requireContext()) { rows().map { it is PreferenceCategory }.toBooleanArray() })
             // Edge to edge: keep the last row above the navigation bar.
             ViewCompat.setOnApplyWindowInsetsListener(listView) { v, insets ->
                 v.updatePadding(bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom)
@@ -89,6 +99,20 @@ class SettingsActivity : AppCompatActivity() {
             super.onResume()
             refreshLocationState()
         }
+
+        /** The rows as the list shows them: visible preferences in order, categories included. */
+        private fun rows(): List<Preference> =
+            buildList {
+                fun walk(group: PreferenceGroup) {
+                    for (i in 0 until group.preferenceCount) {
+                        val p = group.getPreference(i)
+                        if (!p.isVisible) continue
+                        add(p)
+                        if (p is PreferenceGroup) walk(p)
+                    }
+                }
+                walk(preferenceScreen)
+            }
 
         /** No permission: location settings greyed out, with a row that leads to the fix (Owner, 2026-11-03). */
         private fun refreshLocationState() {
@@ -116,7 +140,7 @@ class SettingsActivity : AppCompatActivity() {
 
         private companion object {
             const val KEY_PERMISSION = "location_permission"
-            val LOCATION_KEYS = listOf(Keys.SHOW_LOCATION, Keys.COORD_FORMAT, Keys.WAIT_PRECISE)
+            val LOCATION_KEYS = listOf(Keys.SHOW_LOCATION, Keys.COORD_FORMAT, Keys.PRECISE_ACCURACY, Keys.WAIT_PRECISE)
         }
     }
 }

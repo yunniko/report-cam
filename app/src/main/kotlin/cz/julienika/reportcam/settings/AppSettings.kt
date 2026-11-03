@@ -9,6 +9,7 @@ import cz.julienika.reportcam.stamp.CoordinateFormat
 import cz.julienika.reportcam.stamp.CoordinatesField
 import cz.julienika.reportcam.stamp.Corner
 import cz.julienika.reportcam.stamp.DateTimeField
+import cz.julienika.reportcam.stamp.FixQuality
 import cz.julienika.reportcam.stamp.FramePlacement
 import cz.julienika.reportcam.stamp.LocationLabels
 import cz.julienika.reportcam.stamp.OverlayPlacement
@@ -75,6 +76,8 @@ object Keys {
     const val PLACE_FORMAT = "place_format"
     const val SHOW_COORDINATES = "show_coordinates"
     const val WAIT_PRECISE = "wait_precise"
+    const val PRECISE_ACCURACY = "precise_accuracy"
+    const val APP_THEME = "app_theme"
     const val PLACEMENT = "placement"
     const val FRAME_BORDER = "frame_border"
     const val TEXT_SIZE = "text_size"
@@ -141,6 +144,9 @@ data class AppSettings(
     /** The scheme new photos are stamped with; [stampSpec] uses it. */
     val scheme: SchemeId = SchemeId.DARK,
     val schemes: Map<SchemeId, StampScheme> = SchemeId.entries.associateWith(StampScheme::default),
+    /** A fix within this radius counts as precise: for the marker, the wait and the stamp's mark alike. */
+    val preciseWithinM: Float = FixQuality.DEFAULT_PRECISE_M,
+    val appTheme: AppTheme = AppTheme.SYSTEM,
 ) {
     /** These settings stamping with [id] instead: the review's dark/light switch. */
     fun withScheme(id: SchemeId): AppSettings =
@@ -162,7 +168,8 @@ data class AppSettings(
                     )
             }
             val placeFormat = if (showLocation) PlaceFormat.of(s.string(Keys.PLACE_FORMAT, Keys.DEFAULT_PLACE_FORMAT)) else null
-            val placeField = placeFormat?.let(::PlaceField)
+            val preciseWithinM = preciseWithin(s)
+            val placeField = placeFormat?.let { PlaceField(it, preciseWithinM) }
             if (placeField != null) fields += placeField
             if (showLocation) {
                 // Coordinates off only drops them while a place name prints; without one they still say where (D012).
@@ -172,7 +179,7 @@ data class AppSettings(
                     } else {
                         { false }
                     }
-                fields += CoordinatesField(format, labels, hiddenWhen = hidden)
+                fields += CoordinatesField(format, labels, hiddenWhen = hidden, preciseWithinM = preciseWithinM)
             }
             val schemes = SchemeId.entries.associateWith { scheme(s, it) }
             val scheme = SchemeId.of(s.string(Keys.STAMP_SCHEME, "")) ?: legacyScheme(s)
@@ -195,6 +202,8 @@ data class AppSettings(
                 quickOnStart = s.string(Keys.QUICK_SIDE, Keys.DEFAULT_QUICK_SIDE) != "end",
                 scheme = scheme,
                 schemes = schemes,
+                preciseWithinM = preciseWithinM,
+                appTheme = AppTheme.of(s.string(Keys.APP_THEME, AppTheme.SYSTEM.id)),
             )
         }
 
@@ -216,6 +225,10 @@ data class AppSettings(
         val FRAME_BORDERS: Map<String, Float> = mapOf("none" to 0f, "thin" to 0.025f, "medium" to 0.05f, "thick" to 0.1f)
 
         private const val MAX_EV = 4f
+
+        private fun preciseWithin(s: SettingsSource): Float =
+            s.string(Keys.PRECISE_ACCURACY, "").toFloatOrNull()?.takeIf { it in FixQuality.PRECISE_CHOICES_M }
+                ?: FixQuality.DEFAULT_PRECISE_M
 
         private fun placement(s: SettingsSource): StampPlacement {
             val p = PLACEMENTS[s.string(Keys.PLACEMENT, Keys.DEFAULT_PLACEMENT)] ?: PLACEMENTS.getValue(Keys.DEFAULT_PLACEMENT)

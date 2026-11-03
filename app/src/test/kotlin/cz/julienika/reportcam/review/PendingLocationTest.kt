@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.review
 
+import cz.julienika.reportcam.stamp.FixQuality
 import cz.julienika.reportcam.location.LocationAccess
 import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.reading
@@ -29,27 +30,27 @@ class PendingLocationTest {
 
     @Test
     fun waitsWithNoFixOrAnApproximateOne() {
-        assertFalse(PendingLocation.settled(status(null), now))
-        assertFalse(PendingLocation.settled(status(fix(500f, 1_000)), now))
-        assertFalse(PendingLocation.settled(status(fix(8f, 1_000, coarse = true)), now))
+        assertFalse(PendingLocation.settled(status(null), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
+        assertFalse(PendingLocation.settled(status(fix(500f, 1_000)), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
+        assertFalse(PendingLocation.settled(status(fix(8f, 1_000, coarse = true)), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
     }
 
     @Test
     fun aPreciseFreshFixEndsTheWait() {
-        assertTrue(PendingLocation.settled(status(fix(8f, 1_000)), now))
+        assertTrue(PendingLocation.settled(status(fix(8f, 1_000)), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
     }
 
     @Test
     fun aPreciseButStaleFixDoesNotEndIt() {
-        assertFalse(PendingLocation.settled(status(fix(8f, 5 * 60_000)), now))
+        assertFalse(PendingLocation.settled(status(fix(8f, 5 * 60_000)), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
     }
 
     @Test
     fun losingLocationKeepsThePhotoWaitingForTheUser() {
         // Owner, 2026-11-03: switching location off or denying it must not stamp the photo by itself (D010).
-        assertFalse(PendingLocation.settled(status(fix(5f, 1_000), LocationAccess.DENIED), now))
-        assertFalse(PendingLocation.settled(status(fix(5f, 1_000), LocationAccess.SERVICES_OFF), now))
-        assertFalse(PendingLocation.settled(status(null, LocationAccess.SERVICES_OFF), now))
+        assertFalse(PendingLocation.settled(status(fix(5f, 1_000), LocationAccess.DENIED), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
+        assertFalse(PendingLocation.settled(status(fix(5f, 1_000), LocationAccess.SERVICES_OFF), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
+        assertFalse(PendingLocation.settled(status(null, LocationAccess.SERVICES_OFF), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M))
     }
 
     @Test

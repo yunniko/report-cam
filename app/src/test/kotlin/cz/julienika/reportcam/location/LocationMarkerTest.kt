@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.location
 
+import cz.julienika.reportcam.stamp.FixQuality
 import cz.julienika.reportcam.location.LocationMarker.Tone
 import cz.julienika.reportcam.stamp.GeoFix
 import org.junit.Assert.assertEquals
@@ -24,7 +25,7 @@ class LocationMarkerTest {
 
     @Test
     fun deniedIsGrayCrossedOutAndStill() {
-        val m = LocationMarker.of(status(LocationAccess.DENIED, fix()), now)
+        val m = LocationMarker.of(status(LocationAccess.DENIED, fix()), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals(Tone.GRAY, m.tone)
         assertTrue(m.crossedOut)
         assertFalse(m.pulsing)
@@ -33,14 +34,14 @@ class LocationMarkerTest {
 
     @Test
     fun servicesOffIsGrayCrossedOut() {
-        val m = LocationMarker.of(status(LocationAccess.SERVICES_OFF), now)
+        val m = LocationMarker.of(status(LocationAccess.SERVICES_OFF), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals(Tone.GRAY, m.tone)
         assertTrue(m.crossedOut)
     }
 
     @Test
     fun searchingWithoutFixPulsesAmber() {
-        val m = LocationMarker.of(status(LocationAccess.PRECISE, updating = true), now)
+        val m = LocationMarker.of(status(LocationAccess.PRECISE, updating = true), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals(Tone.AMBER, m.tone)
         assertTrue(m.pulsing)
         assertEquals(LocationMarker.Labels().searching, m.text)
@@ -48,7 +49,7 @@ class LocationMarkerTest {
 
     @Test
     fun preciseFreshFixIsGreenWithAccuracy() {
-        val m = LocationMarker.of(status(LocationAccess.PRECISE, fix()), now)
+        val m = LocationMarker.of(status(LocationAccess.PRECISE, fix()), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals(Tone.GREEN, m.tone)
         assertFalse(m.pulsing)
         assertEquals("±6 m", m.text)
@@ -56,7 +57,7 @@ class LocationMarkerTest {
 
     @Test
     fun approximateFixIsAmberAndSaysSo() {
-        val m = LocationMarker.of(status(LocationAccess.PRECISE, fix(accuracy = 900f), updating = true), now)
+        val m = LocationMarker.of(status(LocationAccess.PRECISE, fix(accuracy = 900f), updating = true), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals(Tone.AMBER, m.tone)
         assertTrue(m.text.startsWith("≈ "))
         assertTrue(m.text.contains("approximate"))
@@ -65,14 +66,14 @@ class LocationMarkerTest {
 
     @Test
     fun staleFixShowsItsAge() {
-        val m = LocationMarker.of(status(LocationAccess.PRECISE, fix(ageMs = 5 * 60_000L)), now)
+        val m = LocationMarker.of(status(LocationAccess.PRECISE, fix(ageMs = 5 * 60_000L)), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals(Tone.AMBER, m.tone)
         assertTrue(m.text, m.text.contains("5 min old"))
     }
 
     @Test
     fun approximateOnlyPermissionInvitesUpgrade() {
-        val m = LocationMarker.of(status(LocationAccess.APPROXIMATE_ONLY, fix(accuracy = 1500f, coarse = true)), now)
+        val m = LocationMarker.of(status(LocationAccess.APPROXIMATE_ONLY, fix(accuracy = 1500f, coarse = true)), now, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertTrue(m.text.contains(LocationMarker.Labels().approximateOnly))
         assertFalse(m.crossedOut)
     }

@@ -42,14 +42,14 @@
     <string name="pref_show_weekday">Day of the week</string>
     <string name="pref_show_weekday_summary">The short day name before the date, in the phone\'s language.</string>
     <string name="pref_frame_border">Frame border</string>
-    <string name="pref_frame_border_summary">%s. Frame positions only: a border around the other edges of the photo.</string>
+    <string name="pref_frame_border_summary">Frame positions only: a border around the other edges of the photo.</string>
 
     <string name="pref_cat_photo">Photo</string>
     <string name="pref_output_size">Photo size</string>
     <string name="pref_aspect">Photo shape</string>
-    <string name="pref_aspect_summary">%s. Follows how you hold the phone; the preview shows the crop.</string>
+    <string name="pref_aspect_summary">Full uses the whole sensor (3:4). The shape follows how you hold the phone; the preview shows the crop.</string>
     <string name="pref_default_ev">Default exposure</string>
-    <string name="pref_default_ev_summary">%s. The camera opens at it; tap the EV label to return to it.</string>
+    <string name="pref_default_ev_summary">The camera opens at it; tap the EV label to return to it.</string>
     <string name="pref_save_gallery">Save to gallery when sent</string>
     <string name="pref_save_gallery_summary">Sending a photo also keeps a copy in Pictures/Report Cam. The Save button on the review screen saves without sending. A photo is never saved twice.</string>
     <string name="pref_caption">Add stamp text as caption</string>
@@ -108,22 +108,14 @@
     </string-array>
 
     <string-array name="coord_format_labels">
-        <item>Decimal (50.08765, 14.42133)</item>
-        <item>Degrees, minutes, seconds</item>
+        <item>50.08765, 14.42133</item>
+        <item>50°05′15″ N</item>
     </string-array>
     <string-array name="coord_format_values" translatable="false">
         <item>decimal</item>
         <item>dms</item>
     </string-array>
 
-    <string-array name="placement_labels">
-        <item>On photo, bottom left</item>
-        <item>On photo, bottom right</item>
-        <item>On photo, top left</item>
-        <item>On photo, top right</item>
-        <item>Frame below photo</item>
-        <item>Frame above photo</item>
-    </string-array>
     <string-array name="placement_values" translatable="false">
         <item>overlay_bottom_start</item>
         <item>overlay_bottom_end</item>
@@ -144,20 +136,11 @@
         <item>large</item>
     </string-array>
 
-    <string-array name="scheme_labels">
-        <item>Dark</item>
-        <item>Light</item>
-    </string-array>
-    <string-array name="scheme_values" translatable="false">
-        <item>dark</item>
-        <item>light</item>
-    </string-array>
-
     <string-array name="output_size_labels">
-        <item>Small (1280 px)</item>
-        <item>Medium (1920 px)</item>
-        <item>Large (2560 px)</item>
-        <item>Full sensor size</item>
+        <item>1280 px</item>
+        <item>1920 px</item>
+        <item>2560 px</item>
+        <item>Full</item>
     </string-array>
     <string-array name="output_size_values" translatable="false">
         <item>1280</item>
@@ -180,11 +163,11 @@
     </string-array>
 
     <string-array name="aspect_labels">
-        <item>3:4 / 4:3, whole sensor</item>
-        <item>1:1 square</item>
-        <item>4:5 / 5:4</item>
-        <item>2:3 / 3:2</item>
-        <item>9:16 / 16:9</item>
+        <item>Full</item>
+        <item>1:1</item>
+        <item>4:5</item>
+        <item>2:3</item>
+        <item>9:16</item>
     </string-array>
     <string-array name="aspect_values" translatable="false">
         <item>full</item>
@@ -215,5 +198,64 @@
         <item>1</item>
         <item>1.5</item>
         <item>2</item>
+    </string-array>
+
+    <string name="pref_coord_format_summary">Decimal degrees, or degrees, minutes and seconds.</string>
+    <string name="pref_output_size_summary">The long edge of the saved photo. Smaller sends faster.</string>
+    <string name="pref_text_size_summary">Relative to the photo, so it reads the same at every photo size.</string>
+    <string name="pref_precise_accuracy">Precise means within</string>
+    <string name="pref_precise_accuracy_summary">A fix at least this close counts as precise: it is stamped without \"approximate\", and waiting for precise location waits for it.</string>
+    <string-array name="precise_accuracy_labels">
+        <item>5 m</item>
+        <item>10 m</item>
+        <item>20 m</item>
+        <item>30 m</item>
+        <item>50 m</item>
+    </string-array>
+    <string-array name="precise_accuracy_values" translatable="false">
+        <item>5</item>
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>50</item>
+    </string-array>
+
+    <string name="pref_placement_summary">In a corner of the photo, or in a frame band above or below it.</string>
+    <string name="corner_top_start">Top left</string>
+    <string name="corner_top_end">Top right</string>
+    <string name="corner_bottom_start">Bottom left</string>
+    <string name="corner_bottom_end">Bottom right</string>
+    <string name="frame_top">Frame above</string>
+    <string name="frame_bottom">Frame below</string>
+
+    <string name="pref_scheme_summary">The chosen one is used for new photos; the review screen can switch any photo to the other. Tap a preview to change its colours.</string>
+    <string name="scheme_preview_of">%1$s stamp preview</string>
+    <string name="scheme_edit">Edit colours</string>
+    <string name="scheme_dialog_title">%1$s stamp colours</string>
+    <string name="scheme_preview_overlay">On the photo</string>
+    <string name="scheme_preview_frame">As a frame</string>
+    <string name="scheme_background">Background</string>
+    <string name="scheme_text">Text</string>
+    <string name="scheme_opacity">Overlay opacity: %1$d %%</string>
+    <string name="scheme_opacity_label">Overlay opacity</string>
+    <string name="scheme_opacity_note">A frame is always solid.</string>
+    <string name="scheme_save">Save</string>
+    <string name="scheme_reset">Reset</string>
+
+    <string name="pref_cat_sending">Sending</string>
+    <string name="messenger_not_installed">not installed</string>
+
+    <string name="pref_cat_app">App</string>
+    <string name="pref_app_theme">Theme</string>
+    <string name="pref_app_theme_summary">For Settings and the buttons under a photo. The live camera view is always black.</string>
+    <string-array name="app_theme_labels">
+        <item>System</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="app_theme_values" translatable="false">
+        <item>system</item>
+        <item>light</item>
+        <item>dark</item>
     </string-array>
 </resources>

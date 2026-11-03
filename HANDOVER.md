@@ -5,8 +5,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 ## Current state
 
-G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen) and M2 (stamp
-schemes, weekday) are done, M3–M4 remain. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
+G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen), M2 (stamp
+schemes, weekday) and M3 (settings redesign) are done, M4 remains. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1): caption switch (starts at the Settings value) and editable caption; up to three quick
   messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
@@ -16,7 +16,13 @@ schemes, weekday) are done, M3–M4 remain. State on the Pixel 3a API 34 emulato
   own background, text colour and overlay opacity (20–100 %, a frame is always opaque); the old three-way colour
   setting carries over once. The review screen's Dark/Light buttons, each drawn in its scheme's colours, restamp
   from the kept camera JPEG into `report_<time>_<scheme>.jpg` (D019); the new version is unsaved, so Save adds one
-  copy of it and the earlier copy stays. Seen on the emulator; colours are not yet editable (M3).
+  copy of it and the earlier copy stays. Seen on the emulator.
+- Settings (G-003 M3): grouped cards; segmented buttons for small choices; a 2×2 corner grid; sliders for
+  default EV and the precise-location radius (5 / 10 / 20 / 30 / 50 m, default 20 m, D020); a scheme dialog per
+  stamp scheme with background and font palettes, overlay transparency and two previews (overlay on the Owner's
+  photo, frame on solid background) drawn by the stamp renderer; a quick-messenger picker of up to three.
+- App theme (D022): system, light or dark, applied to Settings live and after a cold start and to the controls
+  under a photo (disabled ones dimmed); the live camera view stays black. Seen on the emulator in both themes.
 - Day of the week (D018): off by default; when on, the short day name in the phone's language precedes the date.
 - Gallery (D017): at most one copy in `Pictures/Report Cam`, on the first send when "Save to gallery when sent" is on,
   or by the Save button; a retake without sending leaves none.
@@ -45,7 +51,7 @@ schemes, weekday) are done, M3–M4 remain. State on the Pixel 3a API 34 emulato
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 130 unit, 27 instrumented (shoot → review → share; deferred location through mock providers, including
+- Tests: 135 unit, 30 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; caption, one-copy rule, stamped-photo restore, restamp and its restore). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Release build 0.2.2 (code 5): signed with the D007 key, 1.43 MB, sent to the Owner.
@@ -65,7 +71,9 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
   `PendingLocation` holds its pure rules, `ShareButtons` the quick-button layout rule, and `PendingStore` the on-disk
   copy in `filesDir/pending`: a waiting photo, or a stamped one with its source JPEG and ready entry (`review/ReadyMeta`), never both;
   `location/PlaceLookup` the geocoder call made inside the stamp step.
-  Settings is a separate AppCompat activity.
+  Settings is a separate AppCompat activity: `settings/ui/` holds one `Preference` subclass per control on the
+  shared `pref_widget_row` layout, and `CardDecoration` draws each category as a card (D021). `review/ReviewPalette`
+  colours the review controls in the app theme each time a photo enters review (D022).
 - `camera/CameraSession` owns CameraX: open in `onStart`, close in `onStop` and after every capture (D003).
   `camera/CropGuideView` draws the crop over the preview with the same `photo/AspectCrop` math the pipeline uses.
 - `location/`: `LocationTracker` (platform LocationManager, started/stopped with the activity) and the pure
@@ -102,8 +110,8 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
 
 ## Next steps and open questions
 
-- G-003 M3: settings redesign, the colour dialog with both previews, quick-messenger picker, accuracy threshold,
-  app theme. Then M4 (verification, release 0.3.0).
+- G-003 M4: full suites, camera-release check, startup times; release 0.3.0 to the Owner for the phone test,
+  including how each messenger handles the caption.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

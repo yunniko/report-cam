@@ -18,6 +18,7 @@ data class PhotoMetadata(
     /** Field id to the lines it printed, in stamp order. */
     val fields: List<Pair<String, List<String>>>,
     val data: StampData,
+    private val preciseWithinM: Float,
 ) {
     val stampText: String get() = fields.flatMap { it.second }.joinToString("\n")
 
@@ -56,7 +57,7 @@ data class PhotoMetadata(
         if (reading is LocationReading.Fix) {
             val f = reading.fix
             val at = data[StampKeys.CAPTURE_TIME]?.toInstant()?.toEpochMilli() ?: f.timeMillis
-            val q = FixQuality.of(f, at)
+            val q = FixQuality.of(f, at, preciseWithinM)
             sb.append("<rc:latitude>").append(f.latitude).append("</rc:latitude>")
             sb.append("<rc:longitude>").append(f.longitude).append("</rc:longitude>")
             f.accuracyM?.let { sb.append("<rc:accuracyM>").append(it).append("</rc:accuracyM>") }
@@ -77,7 +78,8 @@ data class PhotoMetadata(
         fun of(
             spec: StampSpec,
             data: StampData,
-        ) = PhotoMetadata(spec.fields.map { it.id to it.lines(data) }, data)
+            preciseWithinM: Float,
+        ) = PhotoMetadata(spec.fields.map { it.id to it.lines(data) }, data, preciseWithinM)
 
         /** Replaces every non-ASCII code point with a numeric character reference. */
         private fun asciiXml(s: String): String {

@@ -6,6 +6,7 @@ import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.reading
 import cz.julienika.reportcam.stamp.CoordinateFormat
 import cz.julienika.reportcam.stamp.CoordinatesField
+import cz.julienika.reportcam.stamp.FixQuality
 import cz.julienika.reportcam.stamp.LocationReading
 
 /**
@@ -34,7 +35,8 @@ object PendingLocation {
     fun settled(
         status: LocationStatus,
         nowMillis: Long,
-    ): Boolean = !lost(status) && !FixPolicy.shouldWait(status, nowMillis)
+        preciseWithinM: Float,
+    ): Boolean = !lost(status) && !FixPolicy.shouldWait(status, nowMillis, preciseWithinM)
 
     /** What "use current" stamps: nothing when location is off or denied, even if an old fix is still held. */
     fun current(status: LocationStatus): LocationReading? =

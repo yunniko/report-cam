@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="settings_bg">#101316</color>
+    <color name="settings_card">#1E2328</color>
+    <color name="settings_outline">#3A424A</color>
+    <color name="settings_link">#F2A33A</color>
+</resources>

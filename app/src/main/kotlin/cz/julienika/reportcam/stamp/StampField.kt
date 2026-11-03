@@ -69,6 +69,7 @@ class CoordinatesField(
     private val nowMillis: () -> Long = System::currentTimeMillis,
     /** True when another line already says where the photo was, so coordinates are left off the stamp (D012). */
     private val hiddenWhen: (StampData) -> Boolean = { false },
+    private val preciseWithinM: Float,
 ) : StampField {
     override val id = "coordinates"
 
@@ -88,7 +89,7 @@ class CoordinatesField(
     ): String {
         // Age is measured against the capture time, not the moment of rendering.
         val at = data[StampKeys.CAPTURE_TIME]?.toInstant()?.toEpochMilli() ?: nowMillis()
-        val q = FixQuality.of(fix, at)
+        val q = FixQuality.of(fix, at, preciseWithinM)
         val sb = StringBuilder()
         if (q.approximate) sb.append(APPROX_SIGN)
         sb.append(position(fix.latitude, fix.longitude, format))

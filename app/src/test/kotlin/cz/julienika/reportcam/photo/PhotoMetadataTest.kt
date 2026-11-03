@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.photo
 
+import cz.julienika.reportcam.stamp.FixQuality
 import cz.julienika.reportcam.stamp.CoordinatesField
 import cz.julienika.reportcam.stamp.Corner
 import cz.julienika.reportcam.stamp.DateTimeField
@@ -24,7 +25,7 @@ class PhotoMetadataTest {
     private val atMs = at.toInstant().toEpochMilli()
     private val spec =
         StampSpec(
-            listOf(TextField(), DateTimeField("yyyy-MM-dd HH:mm", locale = Locale.ROOT), CoordinatesField(nowMillis = { atMs })),
+            listOf(TextField(), DateTimeField("yyyy-MM-dd HH:mm", locale = Locale.ROOT), CoordinatesField(nowMillis = { atMs }, preciseWithinM = FixQuality.DEFAULT_PRECISE_M)),
             OverlayPlacement(Corner.BOTTOM_START),
             StampStyle(),
         )
@@ -39,13 +40,13 @@ class PhotoMetadataTest {
 
     @Test
     fun stampTextIsTheStampLinesInOrder() {
-        val m = PhotoMetadata.of(spec, data("Žižkov <dvůr> & sklad", null))
+        val m = PhotoMetadata.of(spec, data("Žižkov <dvůr> & sklad", null), preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals("Žižkov <dvůr> & sklad\n2026-11-03 14:05", m.stampText)
     }
 
     @Test
     fun asciiDescriptionStripsAccentsAndKeepsAscii() {
-        val m = PhotoMetadata.of(spec, data("Žluťoučký kůň", null))
+        val m = PhotoMetadata.of(spec, data("Žluťoučký kůň", null), preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertEquals("Zlutoucky kun | 2026-11-03 14:05", m.asciiDescription)
         assertTrue(m.asciiDescription.all { it.code in 32..126 })
     }
@@ -53,7 +54,7 @@ class PhotoMetadataTest {
     @Test
     fun xmpEscapesTextAndCarriesTheRawFix() {
         val fix = GeoFix(50.087654, 14.421329, 7.5f, atMs - 90_000, false)
-        val xmp = PhotoMetadata.of(spec, data("A <b> & \"c\"", LocationReading.Fix(fix))).xmp()
+        val xmp = PhotoMetadata.of(spec, data("A <b> & \"c\"", LocationReading.Fix(fix)), preciseWithinM = FixQuality.DEFAULT_PRECISE_M).xmp()
         assertTrue(xmp.contains("A &lt;b&gt; &amp; &quot;c&quot;"))
         assertFalse(xmp.contains("<b>"))
         assertTrue(xmp.contains("<rc:latitude>50.087654</rc:latitude>"))
@@ -66,7 +67,7 @@ class PhotoMetadataTest {
     @Test
     fun xmpIsAsciiAndKeepsEveryCharacterAsAReference() {
         val fix = GeoFix(50.0, 14.0, 1500f, atMs - 10_000, true)
-        val xmp = PhotoMetadata.of(spec, data("Žižkov 📷", LocationReading.Fix(fix))).xmp()
+        val xmp = PhotoMetadata.of(spec, data("Žižkov 📷", LocationReading.Fix(fix)), preciseWithinM = FixQuality.DEFAULT_PRECISE_M).xmp()
         assertTrue(xmp.all { it.code in 0..126 })
         assertTrue(xmp, xmp.contains("&#x17D;i&#x17E;kov &#x1F4F7;"))
         assertTrue(xmp, xmp.contains("&#x2248;50.00000, 14.00000 &#xB1;1.5 km"))
@@ -75,14 +76,14 @@ class PhotoMetadataTest {
     @Test
     fun asciiDescriptionSpellsOutStampSigns() {
         val fix = GeoFix(50.0, 14.0, 1500f, atMs - 10_000, true)
-        val d = PhotoMetadata.of(spec, data("", LocationReading.Fix(fix))).asciiDescription
+        val d = PhotoMetadata.of(spec, data("", LocationReading.Fix(fix)), preciseWithinM = FixQuality.DEFAULT_PRECISE_M).asciiDescription
         assertTrue(d, d.contains("~50.00000, 14.00000 +/-1.5 km"))
-        assertEquals("A - B", PhotoMetadata.of(spec, data("A – B", null)).asciiDescription.substringBefore(" |"))
+        assertEquals("A - B", PhotoMetadata.of(spec, data("A – B", null), preciseWithinM = FixQuality.DEFAULT_PRECISE_M).asciiDescription.substringBefore(" |"))
     }
 
     @Test
     fun deniedLocationLeavesNoLocationInMetadata() {
-        val xmp = PhotoMetadata.of(spec, data("x", null)).xmp()
+        val xmp = PhotoMetadata.of(spec, data("x", null), preciseWithinM = FixQuality.DEFAULT_PRECISE_M).xmp()
         assertFalse(xmp.contains("rc:coordinates"))
         assertFalse(xmp.contains("rc:latitude"))
         assertFalse(xmp.contains("rc:location"))
@@ -90,7 +91,7 @@ class PhotoMetadataTest {
 
     @Test
     fun noFixYetIsRecordedAsUnavailable() {
-        val xmp = PhotoMetadata.of(spec, data("x", LocationReading.None)).xmp()
+        val xmp = PhotoMetadata.of(spec, data("x", LocationReading.None), preciseWithinM = FixQuality.DEFAULT_PRECISE_M).xmp()
         assertTrue(xmp.contains("<rc:location>unavailable</rc:location>"))
     }
 }

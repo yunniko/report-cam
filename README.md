@@ -6,11 +6,13 @@ one tap to up to three messengers of your choice, or through the system Share sh
 Nothing runs in the background, and the camera is open only while the live preview is on screen.
 
 - Runs on Android 8.0 (API 26) to Android 17. Native Kotlin, CameraX, framework Views.
-- Settings: stamp text, date format, location on/off and format, place name (street address through Android's
-  Geocoder, off by default) and whether coordinates print beside it, wait for precise location, stamp position,
-  frame border width, size and colours, photo shape and size (small by default), default exposure, saving to
-  the gallery when sent, the caption switch's starting state, and the quick send buttons (WhatsApp, Telegram,
-  Messenger, Discord, Slack, Snapchat, Instagram; only installed ones show).
+- Settings, in grouped cards: stamp text, date format and day of the week, location on/off and format, what
+  counts as precise (5–50 m, default 20 m), place name (street address through Android's Geocoder, off by
+  default) and whether coordinates print beside it, wait for precise location, stamp corner, frame border width
+  and size, the dark and light stamp schemes (colours and transparency, edited in a dialog with live previews),
+  photo shape and size (small by default), default exposure, saving to the gallery when sent, the caption
+  switch's starting state, the quick send buttons (WhatsApp, Telegram, Messenger, Discord, Slack, Snapchat,
+  Instagram; only installed ones show), and the app theme (system, light or dark).
 - The marker at top left shows the location state; tap it to allow location. Tap the preview to focus,
   pinch to zoom, use the slider for exposure.
 - A stamped photo not yet sent comes back after the app is closed, with its caption.
@@ -32,8 +34,8 @@ gradlew :stub-messenger:assembleDebug  # stand-in messengers for emulator tests,
 
 ## Style
 
-UI: black camera screen, white controls, accent `#F2A33A`, primary `#1F5F8B`. The stamp style is
-configurable in Settings.
+UI: black camera screen, accent `#F2A33A`, primary `#1F5F8B`. Settings and the controls under a photo
+follow the app theme; the live camera view is always black. The stamp style is configurable in Settings.
 
 ## Third-party assets
 
@@ -41,3 +43,4 @@ configurable in Settings.
 - `ic_msg_*.xml` (messenger logos): Boxicons brand set (https://icon-sets.iconify.design/bxl/), MIT License.
   The logos are trademarks of their owners and are used only to label the send buttons.
 - The launcher icon is original artwork.
+- `preview_photo.jpg` (the colour dialog's preview): the Owner's own photo of Český Krumlov, cropped, metadata stripped.

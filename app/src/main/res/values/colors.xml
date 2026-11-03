@@ -3,4 +3,9 @@
     <color name="primary">#1F5F8B</color>
     <color name="accent">#F2A33A</color>
     <color name="launcher_bg">#1F5F8B</color>
+    <!-- Settings (light); values-night holds the dark ones. -->
+    <color name="settings_bg">#EEF1F4</color>
+    <color name="settings_card">#FFFFFF</color>
+    <color name="settings_outline">#C9CFD6</color>
+    <color name="settings_link">#1F5F8B</color>
 </resources>

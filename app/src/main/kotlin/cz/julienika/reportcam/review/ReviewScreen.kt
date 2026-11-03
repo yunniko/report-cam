@@ -1,6 +1,7 @@
 package cz.julienika.reportcam.review
 
 import android.content.ActivityNotFoundException
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.GradientDrawable
@@ -26,6 +27,7 @@ import cz.julienika.reportcam.photo.PhotoPipeline
 import cz.julienika.reportcam.photo.ProcessedPhoto
 import cz.julienika.reportcam.settings.AppSettings
 import cz.julienika.reportcam.share.Messenger
+import cz.julienika.reportcam.share.icon
 import cz.julienika.reportcam.share.Sharing
 import cz.julienika.reportcam.stamp.LocationReading
 import cz.julienika.reportcam.stamp.SchemeId
@@ -125,7 +127,7 @@ class ReviewScreen(
         data: StampData,
         settings: AppSettings,
     ) {
-        enter()
+        enter(settings)
         stamp(source, base, data, settings)
     }
 
@@ -136,7 +138,7 @@ class ReviewScreen(
         data: StampData,
         settings: AppSettings,
     ) {
-        enter()
+        enter(settings)
         state = State.Waiting(source, base, data, settings)
         // A bitmap of its own for the screen: the stamp step draws on [base] and may recycle it.
         val shown = PhotoDecoder.displayCopy(base, displayEdge())
@@ -167,7 +169,7 @@ class ReviewScreen(
      * wait. A broken entry is dropped.
      */
     fun restore(settings: AppSettings) {
-        enter()
+        enter(settings)
         state = State.Restoring
         ui.busy.isVisible = true
         val token = generation
@@ -225,7 +227,7 @@ class ReviewScreen(
     fun onLocation(status: LocationStatus) {
         val waiting = state as? State.Waiting ?: return
         val now = System.currentTimeMillis()
-        if (PendingLocation.settled(status, now)) {
+        if (PendingLocation.settled(status, now, waiting.settings.preciseWithinM)) {
             stamp(waiting.source, waiting.base, waiting.data.with(StampKeys.LOCATION, PendingLocation.current(status)), waiting.settings)
             return
         }
@@ -261,7 +263,7 @@ class ReviewScreen(
                 try {
                     withContext(Dispatchers.Default) {
                         PhotoPipeline(sharedDir).finish(base, s.stampSpec, data, displayEdge).also {
-                            ExifWriter.write(it.file, PhotoMetadata.of(s.stampSpec, data))
+                            ExifWriter.write(it.file, PhotoMetadata.of(s.stampSpec, data, s.preciseWithinM))
                         }
                     }
                 } catch (e: Exception) {
@@ -276,7 +278,7 @@ class ReviewScreen(
                 return@launch
             }
             Log.i(TAG, "photo ${photo.width}x${photo.height} stamped in ${SystemClock.elapsedRealtime() - started}ms")
-            val caption = PhotoMetadata.of(s.stampSpec, data).stampText
+            val caption = PhotoMetadata.of(s.stampSpec, data, s.preciseWithinM).stampText
             val ready = State.Ready(photo, s, saved = false, source, StampFacts.of(data))
             // The stamped copy replaces the waiting one on disk before anything can be sent (D015), and
             // not at all if the user left meanwhile.
@@ -333,7 +335,7 @@ class ReviewScreen(
                         val pipeline = PhotoPipeline(sharedDir)
                         val base = pipeline.decode(ready.source.jpeg, ready.source.longEdge, ready.source.aspect)
                         pipeline.finish(base, s.stampSpec, data, displayEdge, nameSuffix = "_${id.id}").also {
-                            ExifWriter.write(it.file, PhotoMetadata.of(s.stampSpec, data))
+                            ExifWriter.write(it.file, PhotoMetadata.of(s.stampSpec, data, s.preciseWithinM))
                         }
                     }
                 } catch (e: Exception) {
@@ -464,8 +466,13 @@ class ReviewScreen(
         if (wasActive) onLeave()
     }
 
-    private fun enter() {
+    private fun enter(settings: AppSettings) {
         generation++
+        val systemDark =
+            activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+        ReviewPalette
+            .of(settings.appTheme.isDark(systemDark))
+            .paint(ui.reviewControls, activity.resources.displayMetrics.density, setOf(ui.schemeDark, ui.schemeLight))
         sentSinceCapture = false
         ui.reviewImage.isVisible = true
         ui.reviewControls.isVisible = true
@@ -503,7 +510,7 @@ class ReviewScreen(
         button.isVisible = messenger != null
         if (messenger == null) return
         button.text = messenger.label
-        button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon(messenger), 0, 0, 0)
+        button.setCompoundDrawablesRelativeWithIntrinsicBounds(messenger.icon, 0, 0, 0)
         button.setOnClickListener { share(messenger) }
     }
 
@@ -534,16 +541,6 @@ class ReviewScreen(
 
     private fun installed(m: Messenger) = m.firstInstalled { Sharing.isInstalled(activity, it) }
 
-    private fun icon(m: Messenger) =
-        when (m) {
-            Messenger.WHATSAPP -> R.drawable.ic_msg_whatsapp
-            Messenger.TELEGRAM -> R.drawable.ic_msg_telegram
-            Messenger.MESSENGER -> R.drawable.ic_msg_messenger
-            Messenger.DISCORD -> R.drawable.ic_msg_discord
-            Messenger.SLACK -> R.drawable.ic_msg_slack
-            Messenger.SNAPCHAT -> R.drawable.ic_msg_snapchat
-            Messenger.INSTAGRAM -> R.drawable.ic_msg_instagram
-        }
 
     private fun displayEdge() = activity.resources.displayMetrics.let { maxOf(it.widthPixels, it.heightPixels) }
 

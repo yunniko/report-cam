@@ -63,30 +63,30 @@ class PlaceFieldTest {
 
     @Test
     fun theFieldPrintsThePlaceOfAPreciseFix() {
-        assertEquals(listOf("Václavské náměstí 846/1, Praha"), PlaceField(PlaceFormat.STREET_CITY).lines(data(prague)))
+        assertEquals(listOf("Václavské náměstí 846/1, Praha"), PlaceField(PlaceFormat.STREET_CITY, preciseWithinM = FixQuality.DEFAULT_PRECISE_M).lines(data(prague)))
     }
 
     @Test
     fun anApproximateFixGetsTheCityOnlyMarkedApproximate() {
-        assertEquals(listOf("≈Praha"), PlaceField(PlaceFormat.FULL).lines(data(prague, accuracyM = 2_000f)))
+        assertEquals(listOf("≈Praha"), PlaceField(PlaceFormat.FULL, preciseWithinM = FixQuality.DEFAULT_PRECISE_M).lines(data(prague, accuracyM = 2_000f)))
     }
 
     @Test
     fun noPlaceOrNoFixPrintsNothing() {
-        assertTrue(PlaceField(PlaceFormat.FULL).lines(data(null)).isEmpty())
-        assertTrue(PlaceField(PlaceFormat.FULL).lines(StampData.EMPTY.with(StampKeys.PLACE, prague)).isEmpty())
-        assertTrue(PlaceField(PlaceFormat.CITY).lines(data(Place(street = "Dlouhá"))).isEmpty())
+        assertTrue(PlaceField(PlaceFormat.FULL, preciseWithinM = FixQuality.DEFAULT_PRECISE_M).lines(data(null)).isEmpty())
+        assertTrue(PlaceField(PlaceFormat.FULL, preciseWithinM = FixQuality.DEFAULT_PRECISE_M).lines(StampData.EMPTY.with(StampKeys.PLACE, prague)).isEmpty())
+        assertTrue(PlaceField(PlaceFormat.CITY, preciseWithinM = FixQuality.DEFAULT_PRECISE_M).lines(data(Place(street = "Dlouhá"))).isEmpty())
     }
 
     @Test
     fun thePlaceReachesTheCaptionAndXmp() {
         val spec =
             StampSpec(
-                listOf(PlaceField(PlaceFormat.CITY), CoordinatesField()),
+                listOf(PlaceField(PlaceFormat.CITY, preciseWithinM = FixQuality.DEFAULT_PRECISE_M), CoordinatesField(preciseWithinM = FixQuality.DEFAULT_PRECISE_M)),
                 OverlayPlacement(Corner.BOTTOM_START),
                 StampStyle(),
             )
-        val m = PhotoMetadata.of(spec, data(prague))
+        val m = PhotoMetadata.of(spec, data(prague), preciseWithinM = FixQuality.DEFAULT_PRECISE_M)
         assertTrue(m.stampText, m.stampText.startsWith("Praha\n50.08000, 14.42000"))
         assertTrue(m.xmp(), m.xmp().contains("<rc:place>Praha</rc:place>"))
     }
