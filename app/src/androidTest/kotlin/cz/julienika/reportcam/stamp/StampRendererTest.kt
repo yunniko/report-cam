@@ -45,6 +45,20 @@ class StampRendererTest {
     }
 
     @Test
+    fun frameBorderSurroundsThePhotoInTheBandColour() {
+        // Border 5% of the 900 px short edge = 45 px on the left, right and top.
+        val out = StampRenderer.render(photo(), StampSpec(listOf(TextField()), FramePlacement(false, 0.05f)), data)
+        assertEquals(1200 + 90, out.width)
+        val band = out.getPixel(out.width - 2, out.height - 2)
+        for ((x, y) in listOf(2 to 2, out.width - 3 to 450, 20 to 450, 600 to 20)) {
+            assertEquals("border at $x,$y", band, out.getPixel(x, y))
+        }
+        assertEquals(255, Color.alpha(band))
+        assertEquals(gray, out.getPixel(45, 45))
+        assertEquals(gray, out.getPixel(45 + 1199, 45 + 899))
+    }
+
+    @Test
     fun textIsActuallyDrawn() {
         val out = StampRenderer.render(photo(), StampSpec(listOf(TextField()), FramePlacement(top = false)), data)
         var white = 0

@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.settings
 
+import cz.julienika.reportcam.photo.AspectRatio
 import cz.julienika.reportcam.stamp.FramePlacement
 import cz.julienika.reportcam.stamp.OverlayPlacement
 import cz.julienika.reportcam.stamp.StampStyle
@@ -74,5 +75,32 @@ class AppSettingsTest {
     @Test
     fun textSizeMaps() {
         assertEquals(StampStyle.TEXT_LARGE, AppSettings.from(FakeSource(Keys.TEXT_SIZE to "large")).stampSpec.style.textSizeFraction, 0f)
+    }
+
+    @Test
+    fun shapeAndExposureDefaultToTheWholeSensorAtZero() {
+        val s = AppSettings.from(FakeSource())
+        assertEquals(AspectRatio.FULL, s.aspect)
+        assertEquals(0f, s.defaultEv, 0f)
+    }
+
+    @Test
+    fun shapeAndExposureAreRead() {
+        val s = AppSettings.from(FakeSource(Keys.ASPECT to "4:5", Keys.DEFAULT_EV to "-1.5"))
+        assertEquals(AspectRatio.R4_5, s.aspect)
+        assertEquals(-1.5f, s.defaultEv, 0f)
+        assertEquals(0f, AppSettings.from(FakeSource(Keys.DEFAULT_EV to "bad")).defaultEv, 0f)
+    }
+
+    @Test
+    fun frameBorderAppliesToFramePlacementsOnly() {
+        val framed = AppSettings.from(FakeSource(Keys.PLACEMENT to "frame_bottom", Keys.FRAME_BORDER to "thick"))
+        assertEquals(0.05f, (framed.stampSpec.placement as FramePlacement).borderFraction, 0f)
+        val byDefault = AppSettings.from(FakeSource(Keys.PLACEMENT to "frame_top"))
+        assertEquals(0.025f, (byDefault.stampSpec.placement as FramePlacement).borderFraction, 0f)
+        val none = AppSettings.from(FakeSource(Keys.PLACEMENT to "frame_top", Keys.FRAME_BORDER to "none"))
+        assertEquals(0f, (none.stampSpec.placement as FramePlacement).borderFraction, 0f)
+        val overlay = AppSettings.from(FakeSource(Keys.FRAME_BORDER to "thick"))
+        assertEquals(Keys.DEFAULT_PLACEMENT, overlay.stampSpec.placement.id)
     }
 }

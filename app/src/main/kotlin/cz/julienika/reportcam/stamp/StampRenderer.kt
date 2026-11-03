@@ -59,15 +59,14 @@ object StampRenderer {
                 Bitmap.createBitmap(g.outputWidth, g.outputHeight, Bitmap.Config.ARGB_8888)
             }
         val canvas = Canvas(out)
-        if (!inPlace) {
+        if (inPlace) {
+            g.box?.let { drawBox(canvas, it, g.boxCornerRadius, spec.style.backgroundColor) } // translucent, over the photo
+        } else {
+            // Added area has nothing behind it, so its box is opaque, and drawn first: a frame's box spans
+            // the whole output and the photo goes over its middle.
+            g.box?.let { drawBox(canvas, it, g.boxCornerRadius, spec.style.backgroundColor or OPAQUE) }
             canvas.drawBitmap(photo, g.imageLeft.toFloat(), g.imageTop.toFloat(), null)
             photo.recycle()
-        }
-        g.box?.let { b ->
-            // A band added outside the photo has nothing behind it, so it is drawn opaque.
-            val color = if (inPlace) spec.style.backgroundColor else spec.style.backgroundColor or OPAQUE
-            val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
-            canvas.drawRoundRect(b.left, b.top, b.right, b.bottom, g.boxCornerRadius, g.boxCornerRadius, bg)
         }
         val text =
             newTextPaint().apply {
@@ -76,6 +75,16 @@ object StampRenderer {
             }
         for (line in g.lines) canvas.drawText(line.text, line.x, line.baseline, text)
         return out
+    }
+
+    private fun drawBox(
+        canvas: Canvas,
+        b: Box,
+        radius: Float,
+        color: Int,
+    ) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+        canvas.drawRoundRect(b.left, b.top, b.right, b.bottom, radius, radius, paint)
     }
 
     private const val OPAQUE = 0xFF000000.toInt()

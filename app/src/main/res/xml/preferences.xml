@@ -82,6 +82,14 @@
             app:key="colors"
             app:title="@string/pref_colors"
             app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:defaultValue="medium"
+            app:entries="@array/frame_border_labels"
+            app:entryValues="@array/frame_border_values"
+            app:iconSpaceReserved="false"
+            app:key="frame_border"
+            app:summary="@string/pref_frame_border_summary"
+            app:title="@string/pref_frame_border" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_cat_photo" app:iconSpaceReserved="false">
@@ -93,6 +101,22 @@
             app:key="output_size"
             app:title="@string/pref_output_size"
             app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:defaultValue="full"
+            app:entries="@array/aspect_labels"
+            app:entryValues="@array/aspect_values"
+            app:iconSpaceReserved="false"
+            app:key="aspect_ratio"
+            app:summary="@string/pref_aspect_summary"
+            app:title="@string/pref_aspect" />
+        <ListPreference
+            app:defaultValue="0"
+            app:entries="@array/default_ev_labels"
+            app:entryValues="@array/default_ev_values"
+            app:iconSpaceReserved="false"
+            app:key="default_ev"
+            app:summary="@string/pref_default_ev_summary"
+            app:title="@string/pref_default_ev" />
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:iconSpaceReserved="false"

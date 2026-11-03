@@ -183,6 +183,7 @@ class ReviewScreen(
         ui.reviewControls.isVisible = false
         ui.cameraControls.isVisible = true
         ui.preview.isVisible = true
+        ui.cropGuide.isVisible = true
         if (wasActive) onLeave()
     }
 
@@ -193,6 +194,7 @@ class ReviewScreen(
         ui.reviewControls.isVisible = true
         ui.cameraControls.isVisible = false
         ui.preview.isVisible = false
+        ui.cropGuide.isVisible = false
         ui.pendingRow.isVisible = false
         ui.useCurrent.isVisible = false
         setShareVisible(false)

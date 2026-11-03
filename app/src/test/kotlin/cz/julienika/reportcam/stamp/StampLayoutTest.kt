@@ -68,12 +68,39 @@ class StampLayoutTest {
         assertEquals(1000, bottom.outputWidth)
         assertTrue(bottom.outputHeight > 1500)
         assertEquals(0, bottom.imageTop)
-        assertEquals(1500f, bottom.box!!.top, 0.01f)
         assertTrue(bottom.lines.all { it.baseline > 1500f })
 
         val top = layout(FramePlacement(top = true), "one", "two")!!
         assertEquals(top.outputHeight - 1500, top.imageTop)
         assertTrue(top.lines.all { it.baseline < top.imageTop })
+    }
+
+    @Test
+    fun frameBorderSurroundsThePhotoOnTheOtherThreeEdges() {
+        // 1000x1500 photo, border 2% of the short edge = 20 px.
+        val bottom = layout(FramePlacement(top = false, borderFraction = 0.02f), "one")!!
+        val plain = layout(FramePlacement(top = false), "one")!!
+        val bandH = plain.outputHeight - 1500
+        assertEquals(1040, bottom.outputWidth)
+        assertEquals(20 + 1500 + bandH, bottom.outputHeight)
+        assertEquals(20, bottom.imageLeft)
+        assertEquals(20, bottom.imageTop)
+        assertEquals(Box(0f, 0f, 1040f, bottom.outputHeight.toFloat()), bottom.box)
+        // Text lines up with the photo edge and sits in the band below it.
+        assertEquals(20f + plain.lines[0].x, bottom.lines[0].x, 0.01f)
+        assertTrue(bottom.lines.all { it.baseline > 20f + 1500f })
+
+        val top = layout(FramePlacement(top = true, borderFraction = 0.02f), "one")!!
+        assertEquals(bandH, top.imageTop)
+        assertEquals(bandH + 1500 + 20, top.outputHeight)
+        assertTrue(top.lines.all { it.baseline < bandH })
+    }
+
+    @Test
+    fun aFrameWithoutBorderCoversTheWholeOutputBehindThePhoto() {
+        val g = layout(FramePlacement(top = false), "one")!!
+        assertEquals(Box(0f, 0f, 1000f, g.outputHeight.toFloat()), g.box)
+        assertEquals(0, g.imageLeft)
     }
 
     @Test

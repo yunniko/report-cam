@@ -191,9 +191,14 @@ data class OverlayPlacement(
     }
 }
 
-/** A solid band added above or below the photo; the photo itself is not covered. */
+/**
+ * A solid band added above or below the photo, and a border of the band's colour on the other three
+ * edges; the photo itself is not covered. [borderFraction] is the border's width as a fraction of the
+ * photo's short edge; 0 leaves only the band.
+ */
 data class FramePlacement(
     val top: Boolean,
+    val borderFraction: Float = 0f,
 ) : StampPlacement {
     override val id = if (top) "frame_top" else "frame_bottom"
 
@@ -209,18 +214,23 @@ data class FramePlacement(
         unit: Float,
     ): StampGeometry {
         val pad = PADDING * unit
+        val border = (borderFraction.coerceAtLeast(0f) * minOf(imageWidth, imageHeight)).roundToInt()
+        val outW = imageWidth + 2 * border
         val bandH = ceil(block.height + 2 * pad).roundToInt()
-        val bandTop = if (top) 0f else imageHeight.toFloat()
+        // The band replaces the border on its own edge.
+        val bandTop = if (top) 0f else (border + imageHeight).toFloat()
         val lines =
             block.lines.mapIndexed { i, text ->
-                PlacedLine(text, pad, bandTop + pad + i * block.lineHeight + block.ascent)
+                // Text lines up with the photo's edge, not the border's.
+                PlacedLine(text, border + pad, bandTop + pad + i * block.lineHeight + block.ascent)
             }
         return StampGeometry(
-            outputWidth = imageWidth,
-            outputHeight = imageHeight + bandH,
-            imageLeft = 0,
-            imageTop = if (top) bandH else 0,
-            box = Box(0f, bandTop, imageWidth.toFloat(), bandTop + bandH),
+            outputWidth = outW,
+            outputHeight = imageHeight + border + bandH,
+            imageLeft = border,
+            imageTop = if (top) bandH else border,
+            // The whole output is the frame colour; the photo is drawn over its middle.
+            box = Box(0f, 0f, outW.toFloat(), (imageHeight + border + bandH).toFloat()),
             boxCornerRadius = 0f,
             textSizePx = block.sizePx,
             lines = lines,

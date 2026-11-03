@@ -3,6 +3,7 @@ package cz.julienika.reportcam.settings
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import cz.julienika.reportcam.photo.AspectRatio
 import cz.julienika.reportcam.stamp.CoordinateFormat
 import cz.julienika.reportcam.stamp.CoordinatesField
 import cz.julienika.reportcam.stamp.Corner
@@ -56,14 +57,18 @@ object Keys {
     const val COORD_FORMAT = "coord_format"
     const val WAIT_PRECISE = "wait_precise"
     const val PLACEMENT = "placement"
+    const val FRAME_BORDER = "frame_border"
     const val TEXT_SIZE = "text_size"
     const val COLORS = "colors"
     const val OUTPUT_SIZE = "output_size"
+    const val ASPECT = "aspect_ratio"
+    const val DEFAULT_EV = "default_ev"
     const val SAVE_GALLERY = "save_gallery"
     const val CAPTION = "caption"
 
     const val DEFAULT_PATTERN = "yyyy-MM-dd HH:mm:ss"
     const val DEFAULT_PLACEMENT = "overlay_bottom_start"
+    const val DEFAULT_FRAME_BORDER = "medium"
 
     /** Small by default (Owner, 2026-11-03): long edge in px; 0 means the sensor's largest. See D006. */
     const val DEFAULT_OUTPUT_SIZE = "1280"
@@ -78,6 +83,10 @@ data class AppSettings(
     val waitForPrecise: Boolean,
     val coordinateFormat: CoordinateFormat,
     val outputLongEdge: Int,
+    /** The photo is cropped to this shape before stamping; a frame is added around the cropped photo. */
+    val aspect: AspectRatio,
+    /** Exposure compensation the camera opens at, in EV; tapping the EV label returns to it. */
+    val defaultEv: Float,
     val saveToGallery: Boolean,
     /** Send the stamp text as the share's caption (Owner, 2026-11-03). */
     val caption: Boolean,
@@ -94,7 +103,7 @@ data class AppSettings(
                 fields += DateTimeField(safePattern(s.string(Keys.DATETIME_PATTERN, Keys.DEFAULT_PATTERN)))
             }
             if (showLocation) fields += CoordinatesField(format, labels)
-            val spec = StampSpec(fields, placement(s.string(Keys.PLACEMENT, Keys.DEFAULT_PLACEMENT)), style(s))
+            val spec = StampSpec(fields, placement(s), style(s))
             return AppSettings(
                 stampSpec = spec,
                 userText = s.string(Keys.STAMP_TEXT, "").trim(),
@@ -102,6 +111,8 @@ data class AppSettings(
                 waitForPrecise = showLocation && s.bool(Keys.WAIT_PRECISE, false),
                 coordinateFormat = format,
                 outputLongEdge = s.string(Keys.OUTPUT_SIZE, Keys.DEFAULT_OUTPUT_SIZE).toIntOrNull() ?: 1280,
+                aspect = AspectRatio.of(s.string(Keys.ASPECT, AspectRatio.FULL.id)),
+                defaultEv = s.string(Keys.DEFAULT_EV, "0").toFloatOrNull()?.coerceIn(-MAX_EV, MAX_EV) ?: 0f,
                 saveToGallery = s.bool(Keys.SAVE_GALLERY, true),
                 caption = s.bool(Keys.CAPTION, true),
             )
@@ -118,7 +129,17 @@ data class AppSettings(
                 FramePlacement(top = true),
             ).associateBy { it.id }
 
-        private fun placement(id: String) = PLACEMENTS[id] ?: PLACEMENTS.getValue(Keys.DEFAULT_PLACEMENT)
+        /** Frame border width by stored id, as a fraction of the photo's short edge. */
+        val FRAME_BORDERS: Map<String, Float> = mapOf("none" to 0f, "thin" to 0.01f, "medium" to 0.025f, "thick" to 0.05f)
+
+        private const val MAX_EV = 4f
+
+        private fun placement(s: SettingsSource): StampPlacement {
+            val p = PLACEMENTS[s.string(Keys.PLACEMENT, Keys.DEFAULT_PLACEMENT)] ?: PLACEMENTS.getValue(Keys.DEFAULT_PLACEMENT)
+            if (p !is FramePlacement) return p
+            val border = FRAME_BORDERS[s.string(Keys.FRAME_BORDER, Keys.DEFAULT_FRAME_BORDER)] ?: FRAME_BORDERS.getValue(Keys.DEFAULT_FRAME_BORDER)
+            return p.copy(borderFraction = border)
+        }
 
         private fun style(s: SettingsSource): StampStyle {
             val size =

@@ -21,9 +21,15 @@
     <string name="pref_placement">Stamp position</string>
     <string name="pref_text_size">Text size</string>
     <string name="pref_colors">Colours</string>
+    <string name="pref_frame_border">Frame border</string>
+    <string name="pref_frame_border_summary">%s. Frame positions only: a border around the other edges of the photo.</string>
 
     <string name="pref_cat_photo">Photo</string>
     <string name="pref_output_size">Photo size</string>
+    <string name="pref_aspect">Photo shape</string>
+    <string name="pref_aspect_summary">%s. Follows how you hold the phone; the preview shows the crop.</string>
+    <string name="pref_default_ev">Default exposure</string>
+    <string name="pref_default_ev_summary">%s. The camera opens at it; tap the EV label to return to it.</string>
     <string name="pref_save_gallery">Save to gallery</string>
     <string name="pref_save_gallery_summary">Keep a copy in Pictures/Report Cam.</string>
     <string name="pref_caption">Add stamp text as caption</string>
@@ -105,5 +111,56 @@
         <item>1920</item>
         <item>2560</item>
         <item>0</item>
+    </string-array>
+
+    <string-array name="frame_border_labels">
+        <item>None</item>
+        <item>Thin</item>
+        <item>Medium</item>
+        <item>Thick</item>
+    </string-array>
+    <string-array name="frame_border_values" translatable="false">
+        <item>none</item>
+        <item>thin</item>
+        <item>medium</item>
+        <item>thick</item>
+    </string-array>
+
+    <string-array name="aspect_labels">
+        <item>3:4 / 4:3, whole sensor</item>
+        <item>1:1 square</item>
+        <item>4:5 / 5:4</item>
+        <item>2:3 / 3:2</item>
+        <item>9:16 / 16:9</item>
+    </string-array>
+    <string-array name="aspect_values" translatable="false">
+        <item>full</item>
+        <item>1:1</item>
+        <item>4:5</item>
+        <item>2:3</item>
+        <item>9:16</item>
+    </string-array>
+
+    <string-array name="default_ev_labels">
+        <item>−2 EV</item>
+        <item>−1.5 EV</item>
+        <item>−1 EV</item>
+        <item>−0.5 EV</item>
+        <item>0 EV</item>
+        <item>+0.5 EV</item>
+        <item>+1 EV</item>
+        <item>+1.5 EV</item>
+        <item>+2 EV</item>
+    </string-array>
+    <string-array name="default_ev_values" translatable="false">
+        <item>-2</item>
+        <item>-1.5</item>
+        <item>-1</item>
+        <item>-0.5</item>
+        <item>0</item>
+        <item>0.5</item>
+        <item>1</item>
+        <item>1.5</item>
+        <item>2</item>
     </string-array>
 </resources>

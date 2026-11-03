@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.view.View
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ActivityScenario
@@ -14,8 +16,10 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import cz.julienika.reportcam.camera.CropGuideView
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
+import cz.julienika.reportcam.photo.AspectRatio
 import cz.julienika.reportcam.settings.Keys
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -86,6 +90,29 @@ class CaptureFlowTest {
             @Suppress("DEPRECATION")
             val send = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
             assertTrue(!send.hasExtra(Intent.EXTRA_TEXT))
+        }
+    }
+
+    @Test
+    fun squareShapeCropsThePhotoItself() {
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putString(Keys.ASPECT, "1:1").commit()
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.waitFor("live preview") { it.view(R.id.shutter).isEnabled }
+            s.onActivity {
+                assertEquals(AspectRatio.SQUARE, (it.view(R.id.crop_guide) as CropGuideView).ratio)
+                it.view(R.id.shutter).performClick()
+            }
+            s.waitFor("stamped review") { it.view(R.id.share_other).visibility == View.VISIBLE }
+            s.onActivity { it.view(R.id.share_other).performClick() }
+            val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
+            @Suppress("DEPRECATION")
+            val send = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+            @Suppress("DEPRECATION")
+            val uri = send.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)!!
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)!!.use { BitmapFactory.decodeStream(it, null, bounds) }
+            assertTrue("decoded ${bounds.outWidth}x${bounds.outHeight}", bounds.outWidth > 0)
+            assertEquals(bounds.outWidth, bounds.outHeight)
         }
     }
 }

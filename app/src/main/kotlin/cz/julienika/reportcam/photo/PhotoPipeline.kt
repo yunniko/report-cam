@@ -24,11 +24,12 @@ class ProcessedPhoto(
 class PhotoPipeline(
     private val outputDir: File,
 ) {
-    /** The upright photo at output size, not yet stamped. */
+    /** The upright photo at output size, cropped to [aspect], not yet stamped. */
     fun decode(
         jpeg: CapturedJpeg,
         longEdge: Int,
-    ): Bitmap = PhotoDecoder.decodeUpright(jpeg.bytes, jpeg.rotationDegrees, longEdge)
+        aspect: AspectRatio,
+    ): Bitmap = PhotoDecoder.cropTo(PhotoDecoder.decodeUpright(jpeg.bytes, jpeg.rotationDegrees, longEdge), aspect)
 
     /** Stamps [base], writes the JPEG and returns it with a display copy. [base] is consumed: do not use it after. */
     fun finish(

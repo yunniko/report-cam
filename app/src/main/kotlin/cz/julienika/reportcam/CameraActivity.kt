@@ -35,6 +35,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import cz.julienika.reportcam.camera.CameraSession
+import cz.julienika.reportcam.camera.ExposureDefault
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
 import cz.julienika.reportcam.location.FixPolicy
 import cz.julienika.reportcam.location.LocationAccess
@@ -70,6 +71,9 @@ class CameraActivity : ComponentActivity() {
 
     private lateinit var review: ReviewScreen
     private var capturing = false
+
+    /** EV index the user dialled in; kept across retakes, dropped when the app leaves the screen. */
+    private var chosenEvIndex: Int? = null
     private var loggedStartup = false
     private var pulse: ObjectAnimator? = null
 
@@ -104,6 +108,8 @@ class CameraActivity : ComponentActivity() {
         locationPermissions = LocationPermissions(this) { restartTracking() }
         review = ReviewScreen(this, ui, tracker, sharedDir) { if (hasCameraPermission()) openCamera() }
         ui.preview.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+        // The whole frame, not a screen-filling crop: what the preview shows is what the photo holds (D009).
+        ui.preview.scaleType = PreviewView.ScaleType.FIT_CENTER
 
         ViewCompat.setOnApplyWindowInsetsListener(ui.root) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -146,6 +152,7 @@ class CameraActivity : ComponentActivity() {
         super.onStart()
         // Settings may have changed while the settings screen was open.
         settings = AppSettings.from(PrefsSource.of(this), stampLabels())
+        ui.cropGuide.ratio = settings.aspect
         // After a send, coming back means "next photo", not the old review.
         if (review.isActive && review.sentSinceCapture) review.leave()
         if (hasCameraPermission()) {
@@ -163,6 +170,8 @@ class CameraActivity : ComponentActivity() {
         // Release the camera the moment the app is not visible: home, share sheet, screen off. See D003.
         session.close()
         tracker.stop()
+        // A dialled-in exposure belongs to the scene in front of the user; the next visit opens at the default.
+        if (!review.isActive) chosenEvIndex = null
         orientationListener.disable()
         super.onStop()
     }
@@ -180,8 +189,12 @@ class CameraActivity : ComponentActivity() {
         ui.exposureRow.isVisible = true
         if (exposure.isExposureCompensationSupported) {
             ui.exposure.isVisible = true
+            val step = exposure.exposureCompensationStep.toFloat()
+            val defaultIndex = ExposureDefault.index(settings.defaultEv, step, range.lower, range.upper)
+            val start = chosenEvIndex ?: defaultIndex
+            camera.cameraControl.setExposureCompensationIndex(start)
             ui.exposure.max = range.upper - range.lower
-            ui.exposure.progress = exposure.exposureCompensationIndex - range.lower
+            ui.exposure.progress = start - range.lower
             ui.exposure.setOnSeekBarChangeListener(
                 object : SeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(
@@ -190,8 +203,11 @@ class CameraActivity : ComponentActivity() {
                         fromUser: Boolean,
                     ) {
                         val index = progress + range.lower
-                        if (fromUser) camera.cameraControl.setExposureCompensationIndex(index)
-                        showExposure(index * exposure.exposureCompensationStep.toFloat())
+                        if (fromUser) {
+                            camera.cameraControl.setExposureCompensationIndex(index)
+                            chosenEvIndex = index
+                        }
+                        showExposure(index * step)
                     }
 
                     override fun onStartTrackingTouch(bar: SeekBar) = Unit
@@ -199,10 +215,12 @@ class CameraActivity : ComponentActivity() {
                     override fun onStopTrackingTouch(bar: SeekBar) = Unit
                 },
             )
-            showExposure(exposure.exposureCompensationIndex * exposure.exposureCompensationStep.toFloat())
+            showExposure(start * step)
+            // Tapping the label returns to the default from settings.
             ui.exposureLabel.setOnClickListener {
-                camera.cameraControl.setExposureCompensationIndex(0)
-                ui.exposure.progress = -range.lower
+                camera.cameraControl.setExposureCompensationIndex(defaultIndex)
+                chosenEvIndex = null
+                ui.exposure.progress = defaultIndex - range.lower
             }
         } else {
             ui.exposure.isVisible = false
@@ -297,7 +315,7 @@ class CameraActivity : ComponentActivity() {
             ui.busy.isVisible = true
             val base =
                 try {
-                    withContext(Dispatchers.Default) { PhotoPipeline(sharedDir).decode(jpeg, s.outputLongEdge) }
+                    withContext(Dispatchers.Default) { PhotoPipeline(sharedDir).decode(jpeg, s.outputLongEdge, s.aspect) }
                 } catch (e: Exception) {
                     Log.e(TAG, "decode failed", e)
                     null

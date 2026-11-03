@@ -2,6 +2,7 @@ package cz.julienika.reportcam.photo
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Matrix
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -41,6 +42,20 @@ object PhotoDecoder {
         val out = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, m, true)
         if (out !== decoded) decoded.recycle()
         return if (out.isMutable) out else out.copy(Bitmap.Config.ARGB_8888, true).also { out.recycle() }
+    }
+
+    /** The centred [ratio] part of [src] as a new mutable bitmap; [src] is recycled. FULL returns [src]. */
+    fun cropTo(
+        src: Bitmap,
+        ratio: AspectRatio,
+    ): Bitmap {
+        val r = AspectCrop.centered(src.width, src.height, ratio)
+        if (r.width == src.width && r.height == src.height) return src
+        // Drawn into a fresh bitmap: createBitmap(src, x, y, w, h) may return an immutable one.
+        val out = Bitmap.createBitmap(r.width, r.height, Bitmap.Config.ARGB_8888)
+        Canvas(out).drawBitmap(src, -r.left.toFloat(), -r.top.toFloat(), null)
+        src.recycle()
+        return out
     }
 
     /** A display-sized copy for the review screen, so a full-size photo never goes to the GPU whole. */
