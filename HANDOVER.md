@@ -1,11 +1,11 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at 76f1565 (+ M3 commit)
+Last verified: 2026-11-03 at 5869fd6
 
 A native Android stamp camera for photo reports. Open goals are in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
 
 ## Current state
 
-G-001 is done (archived in `docs/goals-archive.md`); G-002 is active, M1–M3 of 4 done. State on the Pixel 3a
+G-001 is done (archived in `docs/goals-archive.md`); G-002 is active, all 4 milestones done, waiting for the Owner's phone test and sign-off. State on the Pixel 3a
 API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review; gallery copy in `Pictures/Report Cam`.
 - Photo shape (D009): full frame, 1:1, 4:5, 2:3 or 9:16, short:long following how the phone is held; centre-cropped
@@ -28,12 +28,16 @@ API 34 emulator at the commit above (debug build unless marked release):
 - Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
 - Tests: 97 unit, 18 instrumented (shoot → review → share; deferred location through mock providers, including
-  restart; square crop; the real geocoder, skipped offline). The emulator camera currently runs at about 1 frame/s, so `DeferredLocationTest` cases
-  take 47–215 s each; they pass. `scripts/camera-release-check.sh` has not been rerun since M1 (10/10); M4 reruns it.
-- Release build 0.1.1 (G-001) is the last one sent: signed (D007), 1.40 MB.
+  restart; square crop; the real geocoder, skipped offline). The emulator camera currently runs at about
+  1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
+- Release build 0.2.0 (code 3): signed with the D007 key, 1.43 MB, sent to the Owner.
+  `scripts/camera-release-check.sh` on it: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
+  step can fail, because camera close on this emulator takes 2–5 s. 0.1.1 behaves the same here.
+- Startup to a streaming preview on today's emulator: 0.2.0 2.5–3.8 s, 0.1.1 2.2–4.2 s, measured back to back,
+  so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
-Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons and how they handle the caption;
-pinch zoom; startup and capture times since M1 (measured again in M4).
+Not yet verified: anything on a real phone, including the place-name format Google returns there; the direct
+WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup times on a healthy device.
 
 ## How things fit together
 
@@ -73,7 +77,8 @@ pinch zoom; startup and capture times since M1 (measured again in M4).
 
 ## Next steps and open questions
 
-- G-002 (`GOALS.md`): M4 next: full suite, camera-release check, startup timing, release APK to the Owner.
+- G-002 (`GOALS.md`): waiting for the Owner's phone test of 0.2.0 and sign-off. Day of week in the date is
+  postponed to a later goal.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 
@@ -81,6 +86,7 @@ pinch zoom; startup and capture times since M1 (measured again in M4).
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-03 | 5869fd6 | APK 0.2.0 sent to the Owner: G-002 (shape, frame border, default EV, place name, deferred location) | `apksigner verify`; release check and startup on the emulator |
 | 2026-11-03 | a870fd4 | APK 0.1.1 sent to the Owner: Settings toolbar no longer covers rows on Android 15+ | emulator screenshots, debug and release |
 | 2026-11-03 | eb92b27 | APK 0.1.0 sent to the Owner on Telegram for a phone test | `apksigner verify`; release run on the emulator |
 

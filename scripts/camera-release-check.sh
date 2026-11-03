@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Checks on a connected device/emulator that Report Cam holds the camera only while its preview is visible.
 # Usage: scripts/camera-release-check.sh   (app must be installed with permissions granted: adb install -g)
+# On a slow emulator camera close can take 2-5 s; run with WAIT=6 there (G-002 M4 log).
 set -u
 export MSYS_NO_PATHCONV=1  # Git Bash on Windows would rewrite /sdcard paths
 PKG=cz.julienika.reportcam
