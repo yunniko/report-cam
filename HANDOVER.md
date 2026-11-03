@@ -5,7 +5,7 @@ A native Android stamp camera for photo reports. Open goals are in `GOALS.md`. C
 
 ## Current state
 
-G-001 is done (archived in `docs/goals-archive.md`); G-002 is active, all 4 milestones done, waiting for the Owner's phone test and sign-off. State on the Pixel 3a
+G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`); no goal is open. State on the Pixel 3a
 API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review; gallery copy in `Pictures/Report Cam`.
 - Photo shape (D009): full frame, 1:1, 4:5, 2:3 or 9:16, short:long following how the phone is held; centre-cropped
@@ -16,7 +16,8 @@ API 34 emulator at the commit above (debug build unless marked release):
 - Place name (D011): off by default; full address, street and number, street and city, or city, above the
   coordinates and in XMP and the caption. Looked up once through Android's Geocoder just before stamping
   (650 ms on the emulator, Google answering); offline it fails in about 0.3 s and the stamp keeps coordinates only.
-  Google gives Prague no locality, so the city reads "Hlavní město Praha". An approximate fix prints only ≈city.
+  Google gives Prague no locality; the city is then read from its address line, "Praha 1-Staré Město" (D014),
+  and the region is the last fallback. An approximate fix prints only ≈city.
   "Coordinates on the stamp" off (D012): only the place name prints; with no place found the coordinates
   print as before. GPS metadata is kept either way. Seen on the emulator online and offline.
 - Default exposure: Settings sets the EV the camera opens at (−2 to +2); tapping the EV label returns to it.
@@ -30,10 +31,10 @@ API 34 emulator at the commit above (debug build unless marked release):
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 100 unit, 18 instrumented (shoot → review → share; deferred location through mock providers, including
+- Tests: 103 unit, 18 instrumented (shoot → review → share; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
-- Release build 0.2.1 (code 4): signed with the D007 key, 1.43 MB, launches on the emulator; sent to the Owner.
+- Release build 0.2.2 (code 5): signed with the D007 key, 1.43 MB, sent to the Owner.
   `scripts/camera-release-check.sh` on 0.2.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
   step can fail, because camera close on this emulator takes 2–5 s. 0.1.1 behaves the same here.
 - Startup to a streaming preview on today's emulator: 0.2.0 2.5–3.8 s, 0.1.1 2.2–4.2 s, measured back to back,
@@ -80,8 +81,7 @@ WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup t
 
 ## Next steps and open questions
 
-- G-002 (`GOALS.md`): waiting for the Owner's phone test of 0.2.1 and sign-off. Day of week in the date is
-  postponed to a later goal.
+- No open goal. Day of the week in the date was postponed out of G-002 and waits for a new goal.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 
@@ -89,6 +89,7 @@ WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup t
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-03 | (this commit) | Repo pushed public to github.com/yunniko/report-cam; APK 0.2.2 sent: city from the address line (D014) | secrets scan of the history; `apksigner verify`; unit 103/103 |
 | 2026-11-03 | 3222093 | APK 0.2.1 sent to the Owner: border scale (D013), coordinates switch (D012) | `apksigner verify`; release launch on the emulator; unit 100/100, instrumented 18/18 |
 | 2026-11-03 | 5869fd6 | APK 0.2.0 sent to the Owner: G-002 (shape, frame border, default EV, place name, deferred location) | `apksigner verify`; release check and startup on the emulator |
 | 2026-11-03 | a870fd4 | APK 0.1.1 sent to the Owner: Settings toolbar no longer covers rows on Android 15+ | emulator screenshots, debug and release |

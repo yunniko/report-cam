@@ -13,3 +13,4 @@
 - D011 — The place name is looked up once, for the fix being stamped, and is off by default — active
 - D012 — "Coordinates on the stamp" off drops them only while a place name prints — active
 - D013 — Frame border widths: thin 2.5 %, medium 5 %, thick 10 % of the short edge — active
+- D014 — With no locality, the city is the address-line part after the postcode — active

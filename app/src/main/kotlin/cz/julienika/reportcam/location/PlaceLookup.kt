@@ -89,24 +89,42 @@ class GeocoderPlaceLookup(
                 street = a.thoroughfare,
                 houseNumber = a.subThoroughfare,
                 featureName = a.featureName,
-                city = a.locality ?: a.subAdminArea,
+                locality = a.locality,
+                region = a.subAdminArea,
+                postalCode = a.postalCode,
                 addressLine = if (a.maxAddressLineIndex >= 0) a.getAddressLine(0) else null,
             )
 
         /**
          * Plain-Kotlin mapping, unit-tested. Czech results often carry the house number ("846/1") only as the
-         * feature name, so a number-like feature name stands in for a missing house number.
+         * feature name, so a number-like feature name stands in for a missing house number. With no locality
+         * (Google gives Prague none) the city is the address-line part after the postcode, "Praha 1-Staré
+         * Město", before the region "Hlavní město Praha" (D014).
          */
         fun placeOf(
             street: String?,
             houseNumber: String?,
             featureName: String?,
-            city: String?,
+            locality: String?,
             addressLine: String?,
+            region: String? = null,
+            postalCode: String? = null,
         ): Place? {
             val number = houseNumber.clean() ?: featureName.clean()?.takeIf { it.matches(HOUSE_NUMBER) }
-            val p = Place(street.clean(), number, city.clean(), addressLine.clean())
+            val line = addressLine.clean()
+            val city = locality.clean() ?: cityInLine(line, postalCode.clean()) ?: region.clean()
+            val p = Place(street.clean(), number, city, line)
             return p.takeIf { it.street != null || it.city != null || it.fullAddress != null }
+        }
+
+        /** "Staroměstské nám. 1, 110 00 Praha 1-Staré Město, Česko" with postcode "110 00" → "Praha 1-Staré Město". */
+        internal fun cityInLine(
+            line: String?,
+            postalCode: String?,
+        ): String? {
+            if (line == null || postalCode == null) return null
+            val part = line.split(',').map { it.trim() }.firstOrNull { it.contains(postalCode) } ?: return null
+            return part.replace(postalCode, "").trim().takeIf { name -> name.any { it.isLetter() } }
         }
 
         private val HOUSE_NUMBER = Regex("""\d+[a-zA-Z]?(/\d+[a-zA-Z]?)?""")

@@ -5,12 +5,14 @@ date and time, your location and a text set in Settings. Send it straight to Wha
 Nothing runs in the background, and the camera is open only while the live preview is on screen.
 
 - Runs on Android 8.0 (API 26) to Android 17. Native Kotlin, CameraX, framework Views.
-- Settings: stamp text, date format, location on/off and format, wait for precise location, stamp position,
-  size and colours, photo size (small by default), gallery copy, and sending the stamp text as the caption.
+- Settings: stamp text, date format, location on/off and format, place name (street address through Android's
+  Geocoder, off by default) and whether coordinates print beside it, wait for precise location, stamp position,
+  frame border width, size and colours, photo shape and size (small by default), default exposure, gallery
+  copy, and sending the stamp text as the caption.
 - The marker at top left shows the location state; tap it to allow location. Tap the preview to focus,
   pinch to zoom, use the slider for exposure.
 - Stamp data is also stored in the file's EXIF and XMP metadata.
-- Goals: `GOALS.md`. Project state and how it fits together: `HANDOVER.md`.
+- Current state: G-001 and G-002 are done (`docs/goals-archive.md`). Goals: `GOALS.md`. Project state and how it fits together: `HANDOVER.md`.
 
 ## Build and run
 
