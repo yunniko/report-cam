@@ -1,5 +1,5 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at 3222093
+Last verified: 2026-11-03 at 58a8fe3
 
 A native Android stamp camera for photo reports. Open goals are in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
 
@@ -89,7 +89,7 @@ WhatsApp/Telegram buttons and how they handle the caption; pinch zoom; startup t
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
-| 2026-11-03 | (this commit) | Repo pushed public to github.com/yunniko/report-cam; APK 0.2.2 sent: city from the address line (D014) | secrets scan of the history; `apksigner verify`; unit 103/103 |
+| 2026-11-03 | 58a8fe3 | Repo pushed public to github.com/yunniko/report-cam; APK 0.2.2 sent: city from the address line (D014) | secrets scan of the history; `apksigner verify`; unit 103/103 |
 | 2026-11-03 | 3222093 | APK 0.2.1 sent to the Owner: border scale (D013), coordinates switch (D012) | `apksigner verify`; release launch on the emulator; unit 100/100, instrumented 18/18 |
 | 2026-11-03 | 5869fd6 | APK 0.2.0 sent to the Owner: G-002 (shape, frame border, default EV, place name, deferred location) | `apksigner verify`; release check and startup on the emulator |
 | 2026-11-03 | a870fd4 | APK 0.1.1 sent to the Owner: Settings toolbar no longer covers rows on Android 15+ | emulator screenshots, debug and release |
