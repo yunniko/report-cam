@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_cat_stamp">Stamp</string>
+    <string name="pref_stamp_text">Text</string>
+    <string name="pref_show_datetime">Date and time</string>
+    <string name="pref_datetime_pattern">Date format</string>
+
+    <string name="pref_cat_location">Location</string>
+    <string name="pref_location_denied">Location not allowed</string>
+    <string name="pref_location_denied_summary">Tap to allow location for Report Cam. Until then the stamp has no location.</string>
+    <string name="pref_location_off">Location is turned off</string>
+    <string name="pref_location_off_summary">Tap to open the phone\'s location settings.</string>
+    <string name="pref_location_approx">Only approximate location allowed</string>
+    <string name="pref_location_approx_summary">Tap to allow precise location.</string>
+    <string name="pref_show_location">Show location</string>
+    <string name="pref_coord_format">Coordinates</string>
+    <string name="pref_wait_precise">Wait for precise location</string>
+    <string name="pref_wait_precise_summary">The shutter waits for a precise, fresh fix. Tap it again to take the photo anyway.</string>
+
+    <string name="pref_cat_look">Look</string>
+    <string name="pref_placement">Stamp position</string>
+    <string name="pref_text_size">Text size</string>
+    <string name="pref_colors">Colours</string>
+
+    <string name="pref_cat_photo">Photo</string>
+    <string name="pref_output_size">Photo size</string>
+    <string name="pref_save_gallery">Save to gallery</string>
+    <string name="pref_save_gallery_summary">Keep a copy in Pictures/Report Cam.</string>
+    <string name="pref_caption">Add stamp text as caption</string>
+    <string name="pref_caption_summary">The stamp text goes with the photo as a message, so it stays readable even though messengers strip metadata from photos.</string>
+
+    <string-array name="datetime_pattern_labels">
+        <item>2026-11-03 14:05:09</item>
+        <item>2026-11-03 14:05:09 +01:00</item>
+        <item>03.11.2026 14:05</item>
+        <item>03.11.2026 14:05:09</item>
+        <item>03/11/2026 14:05</item>
+        <item>11/03/2026 2:05 PM</item>
+    </string-array>
+    <string-array name="datetime_pattern_values" translatable="false">
+        <item>yyyy-MM-dd HH:mm:ss</item>
+        <item>yyyy-MM-dd HH:mm:ss xxx</item>
+        <item>dd.MM.yyyy HH:mm</item>
+        <item>dd.MM.yyyy HH:mm:ss</item>
+        <item>dd/MM/yyyy HH:mm</item>
+        <item>MM/dd/yyyy h:mm a</item>
+    </string-array>
+
+    <string-array name="coord_format_labels">
+        <item>Decimal (50.08765, 14.42133)</item>
+        <item>Degrees, minutes, seconds</item>
+    </string-array>
+    <string-array name="coord_format_values" translatable="false">
+        <item>decimal</item>
+        <item>dms</item>
+    </string-array>
+
+    <string-array name="placement_labels">
+        <item>On photo, bottom left</item>
+        <item>On photo, bottom right</item>
+        <item>On photo, top left</item>
+        <item>On photo, top right</item>
+        <item>Frame below photo</item>
+        <item>Frame above photo</item>
+    </string-array>
+    <string-array name="placement_values" translatable="false">
+        <item>overlay_bottom_start</item>
+        <item>overlay_bottom_end</item>
+        <item>overlay_top_start</item>
+        <item>overlay_top_end</item>
+        <item>frame_bottom</item>
+        <item>frame_top</item>
+    </string-array>
+
+    <string-array name="text_size_labels">
+        <item>Small</item>
+        <item>Medium</item>
+        <item>Large</item>
+    </string-array>
+    <string-array name="text_size_values" translatable="false">
+        <item>small</item>
+        <item>medium</item>
+        <item>large</item>
+    </string-array>
+
+    <string-array name="colors_labels">
+        <item>White on dark</item>
+        <item>Black on light</item>
+        <item>Yellow on dark</item>
+    </string-array>
+    <string-array name="colors_values" translatable="false">
+        <item>light_on_dark</item>
+        <item>dark_on_light</item>
+        <item>yellow_on_dark</item>
+    </string-array>
+
+    <string-array name="output_size_labels">
+        <item>Small (1280 px)</item>
+        <item>Medium (1920 px)</item>
+        <item>Large (2560 px)</item>
+        <item>Full sensor size</item>
+    </string-array>
+    <string-array name="output_size_values" translatable="false">
+        <item>1280</item>
+        <item>1920</item>
+        <item>2560</item>
+        <item>0</item>
+    </string-array>
+</resources>

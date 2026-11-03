@@ -25,27 +25,53 @@
         android:alpha="0"
         android:background="@android:color/white" />
 
+    <View
+        android:id="@+id/focus_ring"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/focus_ring"
+        android:visibility="invisible" />
+
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
         android:gravity="center_vertical|end"
+        android:background="@drawable/top_scrim"
         android:orientation="horizontal"
         android:padding="8dp">
 
-        <TextView
-            android:id="@+id/location_status"
+        <LinearLayout
+            android:id="@+id/location_marker"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:shadowColor="#000000"
-            android:shadowRadius="4"
-            android:textColor="@android:color/white"
-            android:textSize="13sp"
-            tools:text="GPS 8 m" />
+            android:paddingEnd="8dp">
+
+            <ImageView
+                android:id="@+id/location_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_location_on" />
+
+            <TextView
+                android:id="@+id/location_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:maxLines="2"
+                android:shadowColor="#000000"
+                android:shadowRadius="4"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                tools:text="8 m" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/settings"
@@ -65,10 +91,63 @@
         android:orientation="vertical"
         android:paddingTop="12dp">
 
+        <TextView
+            android:id="@+id/wait_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="#99000000"
+            android:padding="8dp"
+            android:text="@string/waiting_precise"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/exposure_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/exposure_label"
+                android:layout_width="64dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:shadowColor="#000000"
+                android:shadowRadius="4"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                tools:text="EV 0" />
+
+            <SeekBar
+                android:id="@+id/exposure"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/exposure" />
+
+            <TextView
+                android:id="@+id/zoom_label"
+                android:layout_width="64dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:shadowColor="#000000"
+                android:shadowRadius="4"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                tools:text="1.0x" />
+        </LinearLayout>
+
         <Button
             android:id="@+id/shutter"
             android:layout_width="80dp"
             android:layout_height="80dp"
+            android:layout_marginTop="8dp"
             android:layout_marginBottom="24dp"
             android:background="@drawable/shutter"
             android:contentDescription="@string/take_photo"

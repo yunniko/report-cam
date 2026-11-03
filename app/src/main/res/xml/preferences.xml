@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keys and defaults mirror settings/AppSettings.kt (Keys). -->
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/pref_cat_stamp" app:iconSpaceReserved="false">
+        <EditTextPreference
+            app:key="stamp_text"
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_stamp_text"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="show_datetime"
+            app:title="@string/pref_show_datetime" />
+        <ListPreference
+            app:defaultValue="yyyy-MM-dd HH:mm:ss"
+            app:dependency="show_datetime"
+            app:entries="@array/datetime_pattern_labels"
+            app:entryValues="@array/datetime_pattern_values"
+            app:iconSpaceReserved="false"
+            app:key="datetime_pattern"
+            app:title="@string/pref_datetime_pattern"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:key="cat_location"
+        app:title="@string/pref_cat_location">
+        <Preference
+            app:iconSpaceReserved="false"
+            app:isPreferenceVisible="false"
+            app:key="location_permission"
+            app:summary="@string/pref_location_denied_summary"
+            app:title="@string/pref_location_denied" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="show_location"
+            app:title="@string/pref_show_location" />
+        <ListPreference
+            app:defaultValue="decimal"
+            app:dependency="show_location"
+            app:entries="@array/coord_format_labels"
+            app:entryValues="@array/coord_format_values"
+            app:iconSpaceReserved="false"
+            app:key="coord_format"
+            app:title="@string/pref_coord_format"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:dependency="show_location"
+            app:iconSpaceReserved="false"
+            app:key="wait_precise"
+            app:summary="@string/pref_wait_precise_summary"
+            app:title="@string/pref_wait_precise" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/pref_cat_look" app:iconSpaceReserved="false">
+        <ListPreference
+            app:defaultValue="overlay_bottom_start"
+            app:entries="@array/placement_labels"
+            app:entryValues="@array/placement_values"
+            app:iconSpaceReserved="false"
+            app:key="placement"
+            app:title="@string/pref_placement"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:defaultValue="medium"
+            app:entries="@array/text_size_labels"
+            app:entryValues="@array/text_size_values"
+            app:iconSpaceReserved="false"
+            app:key="text_size"
+            app:title="@string/pref_text_size"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            app:defaultValue="light_on_dark"
+            app:entries="@array/colors_labels"
+            app:entryValues="@array/colors_values"
+            app:iconSpaceReserved="false"
+            app:key="colors"
+            app:title="@string/pref_colors"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/pref_cat_photo" app:iconSpaceReserved="false">
+        <ListPreference
+            app:defaultValue="1280"
+            app:entries="@array/output_size_labels"
+            app:entryValues="@array/output_size_values"
+            app:iconSpaceReserved="false"
+            app:key="output_size"
+            app:title="@string/pref_output_size"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="save_gallery"
+            app:summary="@string/pref_save_gallery_summary"
+            app:title="@string/pref_save_gallery" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="caption"
+            app:summary="@string/pref_caption_summary"
+            app:title="@string/pref_caption" />
+    </PreferenceCategory>
+</PreferenceScreen>

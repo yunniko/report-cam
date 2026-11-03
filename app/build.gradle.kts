@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-// Release signing comes from keystore.properties (git-ignored), never from the repo. See D005.
+// Release signing comes from keystore.properties (git-ignored), never from the repo. See D007.
 val keystoreProps =
     Properties().apply {
         val f = rootProject.file("keystore.properties")

@@ -13,11 +13,21 @@
     <string name="process_failed">Could not process the photo.</string>
     <string name="camera_permission_needed">Report Cam needs the camera to take photos.</string>
     <string name="grant_permission">Allow camera</string>
-    <string name="location_off">No location</string>
-    <string name="location_waiting">Locating…</string>
-    <string name="location_fix">GPS ±%1$d m</string>
-    <string name="location_fix_old">GPS ±%1$d m, %2$d min old</string>
+    <string name="marker_denied">Location not allowed. Tap to allow.</string>
+    <string name="marker_services_off">Location is off. Tap to turn it on.</string>
+    <string name="marker_searching">Locating…</string>
+    <string name="marker_updating">updating</string>
+    <string name="marker_approximate">approximate</string>
+    <string name="marker_approx_only">approximate only, tap for precise</string>
+    <string name="marker_none">No fix yet</string>
+    <string name="waiting_precise">Waiting for precise location. Tap to take now.</string>
+    <string name="stamp_location_unavailable">Location unavailable</string>
+    <string name="stamp_approximate">approximate</string>
+    <string name="stamp_minutes_old">%1$d min old</string>
+    <string name="stamp_hours_old">%1$d h old</string>
     <string name="gallery_failed">Saved for sharing, but not to the gallery.</string>
     <string name="exposure">Exposure</string>
     <string name="zoom_label">%1$.1f×</string>
+    <string name="exposure_label">EV %1$+.1f</string>
+    <string name="storage_needed">Saving to the gallery needs storage access on this Android version.</string>
 </resources>
