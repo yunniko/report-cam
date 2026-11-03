@@ -2,7 +2,6 @@ package cz.julienika.reportcam
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Process
 import android.os.SystemClock
@@ -23,7 +22,18 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import cz.julienika.reportcam.camera.CameraSession
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
-import cz.julienika.reportcam.photo.PhotoDecoder
+import cz.julienika.reportcam.photo.PhotoPipeline
+import cz.julienika.reportcam.photo.ProcessedPhoto
+import cz.julienika.reportcam.stamp.CoordinatesField
+import cz.julienika.reportcam.stamp.Corner
+import cz.julienika.reportcam.stamp.DateTimeField
+import cz.julienika.reportcam.stamp.OverlayPlacement
+import cz.julienika.reportcam.stamp.StampData
+import cz.julienika.reportcam.stamp.StampKeys
+import cz.julienika.reportcam.stamp.StampSpec
+import cz.julienika.reportcam.stamp.TextField
+import java.io.File
+import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -133,19 +143,26 @@ class CameraActivity : ComponentActivity() {
             // Nothing needs the sensor while the photo is reviewed: release it now, not at onStop.
             session.close()
             showBusy(true)
+            val data = StampData.EMPTY.with(StampKeys.CAPTURE_TIME, ZonedDateTime.now())
+            val spec =
+                StampSpec(
+                    listOf(TextField(), DateTimeField("yyyy-MM-dd HH:mm:ss"), CoordinatesField()),
+                    OverlayPlacement(Corner.BOTTOM_START),
+                )
             val photo =
                 withContext(Dispatchers.Default) {
-                    PhotoDecoder.decodeUpright(jpeg.bytes, jpeg.rotationDegrees, DEFAULT_LONG_EDGE)
+                    PhotoPipeline(File(cacheDir, "shared"))
+                        .process(jpeg, DEFAULT_LONG_EDGE, spec, data, resources.displayMetrics.heightPixels)
                 }
             Log.i(TAG, "photo ${photo.width}x${photo.height} ready in ${SystemClock.elapsedRealtime() - started}ms")
             showReview(photo)
         }
     }
 
-    private fun showReview(photo: Bitmap) {
+    private fun showReview(photo: ProcessedPhoto) {
         reviewing = true
         showBusy(false)
-        ui.reviewImage.setImageBitmap(photo)
+        ui.reviewImage.setImageBitmap(photo.display)
         ui.reviewImage.isVisible = true
         ui.reviewControls.isVisible = true
         ui.cameraControls.isVisible = false
