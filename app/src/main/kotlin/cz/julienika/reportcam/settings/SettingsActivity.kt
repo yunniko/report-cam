@@ -1,8 +1,12 @@
 package cz.julienika.reportcam.settings
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -15,10 +19,21 @@ import cz.julienika.reportcam.location.LocationTracker
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge to edge on every version, not only where Android 15+ enforces it, so all devices lay out alike.
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_settings)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            toolbar.updatePadding(left = bars.left, top = bars.top, right = bars.right)
+            findViewById<View>(R.id.settings_container).updatePadding(left = bars.left, right = bars.right)
+            insets
+        }
         if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction().replace(android.R.id.content, SettingsFragment()).commit()
+            supportFragmentManager.beginTransaction().replace(R.id.settings_container, SettingsFragment()).commit()
         }
     }
 
@@ -51,7 +66,7 @@ class SettingsActivity : AppCompatActivity() {
             savedInstanceState: Bundle?,
         ) {
             super.onViewCreated(view, savedInstanceState)
-            // Edge-to-edge (target 35+): keep the last row above the navigation bar.
+            // Edge to edge: keep the last row above the navigation bar.
             ViewCompat.setOnApplyWindowInsetsListener(listView) { v, insets ->
                 v.updatePadding(bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom)
                 insets
