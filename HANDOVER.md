@@ -1,5 +1,5 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at eb92b27
+Last verified: 2026-11-03 at a870fd4
 
 A native Android stamp camera for photo reports. Goal G-001 is in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
 
@@ -17,8 +17,9 @@ API 34 emulator at the commit above (debug build unless marked release):
 - Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
 - Tests: 53 unit, 9 instrumented (including shoot → review → share end to end);
-  `scripts/camera-release-check.sh` 10/10 on debug and release builds.
-- Release build: signed (D007), 1.39 MB; preview streaming 0.55–0.89 s after process start; capture 429 ms.
+  `scripts/camera-release-check.sh` 10/10 on debug and release builds;
+  one unexplained 3 s miss on its "home" step, not reproduced (GOALS.md log).
+- Release build 0.1.1: signed (D007), 1.40 MB; preview streaming 0.55–0.89 s after process start; capture 429 ms.
 
 Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons and how they handle the caption; pinch zoom.
 
@@ -32,6 +33,8 @@ Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons
 - `stamp/` is the extensible stamp (D004). Only `StampRenderer.kt` touches Android graphics.
 - `photo/PhotoPipeline` decodes, stamps and encodes off the main thread into `cacheDir/shared/`;
   `ExifWriter` then adds `PhotoMetadata` (D006); `GallerySaver` copies to MediaStore.
+- Both activities call `enableEdgeToEdge` on every Android version (15+ enforces it) and place their bars
+  from window insets; Settings has its own toolbar in `activity_settings.xml` for that reason.
 - `settings/AppSettings` maps stored preferences to what the app uses; keys and defaults live in `Keys`.
 - `share/Sharing` builds the send intent through the FileProvider; `SharedFiles` prunes copies after 24 h.
 
@@ -48,7 +51,7 @@ Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons
 
 ## Next steps and open questions
 
-- PENDING APPROVAL: the Owner's phone test of APK 0.1.0 and sign-off of G-001 (cold start, WhatsApp and
+- PENDING APPROVAL: the Owner's phone test of APK 0.1.1 and sign-off of G-001 (cold start, WhatsApp and
   Telegram caption handling, pinch zoom, outdoor GPS). Fixes it calls for go into G-001 before sign-off.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 - Later (Owner): a street-address stamp field.
@@ -57,6 +60,7 @@ Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-03 | a870fd4 | APK 0.1.1 sent to the Owner: Settings toolbar no longer covers rows on Android 15+ | emulator screenshots, debug and release |
 | 2026-11-03 | eb92b27 | APK 0.1.0 sent to the Owner on Telegram for a phone test | `apksigner verify`; release run on the emulator |
 
 ## Decisions
