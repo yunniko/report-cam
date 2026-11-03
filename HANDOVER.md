@@ -1,5 +1,5 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at a0cdd5a
+Last verified: 2026-11-03 at 6cf0911
 
 A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept local. Charter: `E:\CLAUDE\COMPANY\`.
 
