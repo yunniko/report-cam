@@ -1,12 +1,12 @@
 # report-cam — Handover
-Last verified: 2026-11-03 at 56df0e7
+Last verified: 2026-11-03 at eb92b27
 
 A native Android stamp camera for photo reports. Goal G-001 is in `GOALS.md`. Charter: `E:\CLAUDE\COMPANY\`.
 
 ## Current state
 
-G-001 is active; M1–M4 are done, M5 (release and phone test) remains. State on the Pixel 3a
-API 34 emulator, debug build, at the commit above:
+G-001 is active; M1–M5 are built and the Owner's phone test is pending. State on the Pixel 3a
+API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped 960×1280 JPEG (1280 px default) in 442–482 ms, shown for review; gallery copy in
   `Pictures/Report Cam`.
 - Stamp: settings text, date/time, coordinates with accuracy, approximate and age marks; overlay or frame.
@@ -16,10 +16,11 @@ API 34 emulator, debug build, at the commit above:
   round-trips. The stamp text is the share caption when the setting is on (default).
 - Sharing: chooser verified; direct WhatsApp/Telegram buttons appear only when installed (not on the emulator).
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 53 unit, 7 instrumented; `scripts/camera-release-check.sh` 10/10 including the share steps.
-- Cold start to streaming preview: 0.8–2.4 s on the emulator, debug build (`am start -W` / `preview streaming` log).
+- Tests: 53 unit, 9 instrumented (including shoot → review → share end to end);
+  `scripts/camera-release-check.sh` 10/10 on debug and release builds.
+- Release build: signed (D007), 1.39 MB; preview streaming 0.55–0.89 s after process start; capture 429 ms.
 
-Not built yet: release signing and a release build; nothing tested on a real phone.
+Not yet verified: anything on a real phone; the direct WhatsApp/Telegram buttons and how they handle the caption; pinch zoom.
 
 ## How things fit together
 
@@ -47,15 +48,16 @@ Not built yet: release signing and a release build; nothing tested on a real pho
 
 ## Next steps and open questions
 
-- M5: release signing (keystore outside the repo, `keystore.properties` git-ignored), release build,
-  startup measured on it, release APK to the Owner by Telegram for a phone test: cold start, WhatsApp and
-  Telegram caption handling, pinch zoom, a real GPS fix outdoors.
+- PENDING APPROVAL: the Owner's phone test of APK 0.1.0 and sign-off of G-001 (cold start, WhatsApp and
+  Telegram caption handling, pinch zoom, outdoor GPS). Fixes it calls for go into G-001 before sign-off.
+- Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 - Later (Owner): a street-address stamp field.
 
 ## Deploy log
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-03 | eb92b27 | APK 0.1.0 sent to the Owner on Telegram for a phone test | `apksigner verify`; release run on the emulator |
 
 ## Decisions
 
