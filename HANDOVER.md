@@ -7,8 +7,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
 hash-named versions), M2 (compact text fields), M3 (two-column frame) and M4 (icons, release 0.4.0) are done;
-it waits for the Owner's sign-off. G-005 (quick stamp row) is active: M1 (per-photo position, D029) is done
-in code and unit tests; it has no button on the review until M2.
+it waits for the Owner's sign-off. G-005 (quick stamp row) is active: M1 (per-photo position, D029) and
+M2 (the row on the review, D030) are done; the Settings ticks come in M3.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -27,8 +27,9 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   own palettes from the Owner's colour chart plus black and white (six dark backgrounds with light texts, six light
   with dark; every pairing at least 4.5:1, D024),
   background, text colour and overlay opacity (20–100 %, a frame is always opaque); the old three-way colour
-  setting carries over once. The review screen's Dark/Light buttons, each drawn in its scheme's colours, redraw
-  from the kept camera JPEG (D019). Each version is `report_<time>_<8-hex hash of its look>.jpg` (D025): going back
+  setting carries over once. The review's stamp row (D030) has six position icons on the left and the two colour
+  icons, each in its scheme's colours, on the right; the one in use is marked, and a tap redraws this photo only
+  (D029) from the kept camera JPEG (D019); with two buttons left they carry names. Seen in light and dark themes. Each version is `report_<time>_<8-hex hash of its look>.jpg` (D025): going back
   to a look reuses its file (seen: note off and on again left two files), and saved status is per version, so Save
   adds one copy of a new version and the earlier copy stays. Seen on the emulator.
 - Settings (G-003 M3): grouped cards; segmented buttons for small choices; a 2×2 corner grid; sliders for
@@ -68,9 +69,9 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 155/155 unit (instrumented last run at 2a30319), 40/40 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 162/162 unit, ReviewActionsTest 12/12 at M2 (full instrumented suite last run at 2a30319: 40/40 (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
-  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right). The emulator camera currently runs at about
+  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right; M2 adds the position redraw kept across a restart and the named two-button row)). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Icons (D028): Retake, Save to gallery, Share and the Dark/Light buttons carry an icon before the label, tinted
   to the button text; the Settings corner chips show only their icon (named for TalkBack), the frame chips icon and
@@ -106,7 +107,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 - `photo/PhotoPipeline` works in two steps off the main thread: `decode` (rotate, crop) after capture, `finish`
   (stamp, encode into `cacheDir/shared/`) once the stamp data is final;
   `ExifWriter` then adds `PhotoMetadata` (D006); `GallerySaver` copies to MediaStore. `review/PhotoVersions` draws
-  or reuses a version by its `PhotoPipeline.fileName` (D025); `ReviewTexts`, `SchemeButtons` and `QuickButtons` own
+  or reuses a version by its `PhotoPipeline.fileName` (D025); `ReviewTexts`, `StampButtons` (rule in `StampChoices`) and `QuickButtons` own
   their rows of the review controls, and `ReviewState` the states.
 - Both activities call `enableEdgeToEdge` on every Android version (15+ enforces it) and place their bars
   from window insets; Settings has its own toolbar in `activity_settings.xml` for that reason.
@@ -137,8 +138,8 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 ## Next steps and open questions
 
 - G-004: done, awaiting the Owner's sign-off on 0.4.0.
-- G-005 M2: the quick row on the review (group rules, icons, two-button named form). M3: Settings for the row
-  and the Note/Message rows. M4: release 0.5.0.
+- G-005 M3: Settings for the row (8 ticks, keys already read by `AppSettings`) and the Note/Message rows
+  (quick editing, on/off switches). M4: release 0.5.0.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

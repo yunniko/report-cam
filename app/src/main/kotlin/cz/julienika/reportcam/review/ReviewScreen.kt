@@ -74,7 +74,7 @@ class ReviewScreen(
 
     private val versions = PhotoVersions(sharedDir, places)
     private val texts = ReviewTexts(ui) { redraw() }
-    private val schemes = SchemeButtons(ui) { redraw(scheme = it) }
+    private val stampButtons = StampButtons(ui.stampRow, { redraw(placement = it) }, { redraw(scheme = it) })
     private val quick =
         QuickButtons(ui, activity.resources.displayMetrics.density, { installed(it) != null }) { share(it) }
 
@@ -256,7 +256,7 @@ class ReviewScreen(
         ui.useCurrent.isVisible = false
         ui.reviewImage.setImageBitmap(ready.photo.display)
         showSaved(ready.saved)
-        schemes.show(ready.settings)
+        showStampButtons(ready)
         if (!ui.shareRow.isVisible) setShareVisible(true)
     }
 
@@ -413,26 +413,32 @@ class ReviewScreen(
     /** The keyboard opened or closed; closing it ends a compact field's edit. */
     fun keyboardShown(shown: Boolean) = texts.keyboardShown(shown)
 
+    /** The quick stamp row for [ready]: what to offer comes from Settings as they are now, what is marked from the photo. */
+    private fun showStampButtons(ready: ReviewState.Ready) {
+        val s = current ?: ready.settings
+        stampButtons.show(s, ready.settings, palette(s))
+        ui.stampRow.isVisible = stampButtons.hasButtons && ui.shareRow.isVisible
+    }
+
     /** Settings changed (back from the Settings screen): the quick buttons and the theme follow at once. */
     fun settingsChanged(settings: AppSettings) {
         current = settings
         if (!isActive) return
         texts.compact = settings.compactTexts
         paintControls(settings)
+        (state as? ReviewState.Ready)?.let(::showStampButtons)
         if (state is ReviewState.Ready && ui.shareRow.isVisible) setShareVisible(true)
     }
 
-    /** The scheme buttons are drawn in their schemes and the quick buttons in their brands, so the palette skips them. */
-    private fun paintControls(settings: AppSettings) {
+    private fun palette(settings: AppSettings): ReviewPalette {
         val systemDark =
             activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        ReviewPalette
-            .of(settings.appTheme.isDark(systemDark))
-            .paint(
-                ui.reviewControls,
-                activity.resources.displayMetrics.density,
-                schemes.views + quick.views,
-            )
+        return ReviewPalette.of(settings.appTheme.isDark(systemDark))
+    }
+
+    /** The stamp row paints itself and the quick buttons are in their brands, so the palette skips them. */
+    private fun paintControls(settings: AppSettings) {
+        palette(settings).paint(ui.reviewControls, activity.resources.displayMetrics.density, stampButtons.views + quick.views)
     }
 
     private fun enter(settings: AppSettings) {
@@ -458,7 +464,7 @@ class ReviewScreen(
         val visible = on && ready != null
         ui.noteRow.isVisible = visible
         ui.messageRow.isVisible = visible
-        ui.schemeRow.isVisible = visible
+        ui.stampRow.isVisible = visible && stampButtons.hasButtons
         ui.shareRow.isVisible = visible
         ui.saveGallery.isVisible = visible
         if (ready == null || !visible) quick.hide() else quick.show(current ?: ready.settings)

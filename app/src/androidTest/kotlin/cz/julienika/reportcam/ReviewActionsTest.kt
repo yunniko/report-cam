@@ -24,10 +24,13 @@ import cz.julienika.reportcam.helpers.keptState
 import cz.julienika.reportcam.helpers.lastSend
 import cz.julienika.reportcam.helpers.pendingDir
 import cz.julienika.reportcam.helpers.shootAndStamp
+import cz.julienika.reportcam.helpers.stampButton
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
+import cz.julienika.reportcam.review.StampButtons
 import cz.julienika.reportcam.settings.Keys
 import cz.julienika.reportcam.share.Sharing
+import cz.julienika.reportcam.stamp.SchemeId
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -271,15 +274,21 @@ class ReviewActionsTest {
         return sum / (b.width * b.height)
     }
 
-    /** Taps a scheme button and waits for that scheme's version; returns its file name. */
-    private fun ActivityScenario<CameraActivity>.restampTo(
-        button: Int,
-        scheme: String,
+    /** Taps a colour button and waits for that scheme's version; returns its file name. */
+    private fun ActivityScenario<CameraActivity>.restampTo(scheme: SchemeId): String = tapAndWait(StampButtons.tag(scheme), "scheme", scheme.id)
+
+    /** Taps a position button and waits for that position's version; returns its file name. */
+    private fun ActivityScenario<CameraActivity>.moveTo(placement: String): String = tapAndWait(StampButtons.tag(placement), "placement", placement)
+
+    private fun ActivityScenario<CameraActivity>.tapAndWait(
+        tag: String,
+        key: String,
+        value: String,
     ): String {
         val before = keptState().getProperty("file")
-        onActivity { it.view(button).performClick() }
-        waitFor("redrawn $scheme") {
-            keptState().let { k -> k.getProperty("scheme") == scheme && k.getProperty("file") != before } && it.canSend()
+        onActivity { it.stampButton(tag).performClick() }
+        waitFor("redrawn $value") {
+            keptState().let { k -> k.getProperty(key) == value && k.getProperty("file") != before } && it.canSend()
         }
         return keptState().getProperty("file")
     }
@@ -296,7 +305,7 @@ class ReviewActionsTest {
             s.waitFor("saved") { !it.view(R.id.save_gallery).isEnabled }
             assertCopies(1, dark)
 
-            val light = s.restampTo(R.id.scheme_light, "light").also { savedNames += it }
+            val light = s.restampTo(SchemeId.LIGHT).also { savedNames += it }
             assertEquals("light", keptState().getProperty("scheme"))
             assertFalse("not among the saved versions", keptState().getProperty("saved_files").contains(light))
             assertTrue("a lighter box", brightness(stampedBytes()) > brightness(darkBytes) + 1.0)
@@ -321,15 +330,47 @@ class ReviewActionsTest {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.shootAndStamp()
             firstDark = keptState().getProperty("file")
-            firstLight = s.restampTo(R.id.scheme_light, "light")
+            firstLight = s.restampTo(SchemeId.LIGHT)
         }
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("the stamped photo back in review") { it.canSend() }
             assertEquals("light", keptState().getProperty("scheme"))
             val lightBytes = stampedBytes()
-            assertEquals("back to dark finds the first version", firstDark, s.restampTo(R.id.scheme_dark, "dark"))
+            assertEquals("back to dark finds the first version", firstDark, s.restampTo(SchemeId.DARK))
             assertTrue("a darker box", brightness(stampedBytes()) < brightness(lightBytes) - 1.0)
-            assertEquals("and light again the second", firstLight, s.restampTo(R.id.scheme_light, "light"))
+            assertEquals("and light again the second", firstLight, s.restampTo(SchemeId.LIGHT))
+        }
+    }
+
+    @Test
+    fun aPositionPickedOnTheReviewMovesThisPhotoOnlyAndComesBackAfterARestart() {
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.shootAndStamp()
+            val before = BitmapFactory.decodeByteArray(stampedBytes(), 0, stampedBytes().size)
+            s.moveTo("frame_top")
+            val framed = BitmapFactory.decodeByteArray(stampedBytes(), 0, stampedBytes().size)
+            assertTrue("a frame adds a band, so the picture grows", framed.height > before.height)
+            s.onActivity { assertTrue("the frame button is marked", it.stampButton(StampButtons.tag("frame_top")).isSelected) }
+        }
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        assertEquals("Settings keep their own position", null, prefs.getString(Keys.PLACEMENT, null))
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.waitFor("the stamped photo back in review") { it.canSend() }
+            assertEquals("frame_top", keptState().getProperty("placement"))
+            s.onActivity { assertTrue("still marked after the restart", it.stampButton(StampButtons.tag("frame_top")).isSelected) }
+        }
+    }
+
+    @Test
+    fun twoQuickButtonsInAllShowTheirNames() {
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putStringSet(Keys.QUICK_POSITIONS, emptySet()).commit()
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.shootAndStamp()
+            s.onActivity {
+                val dark = it.stampButton(StampButtons.tag(SchemeId.DARK)) as Button
+                assertEquals(it.getString(R.string.scheme_dark), dark.text.toString())
+                assertTrue("no position buttons", it.window.decorView.findViewWithTag<View>(StampButtons.tag("frame_top")) == null)
+            }
         }
     }
 }

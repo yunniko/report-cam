@@ -29,3 +29,4 @@
 - D027 — The frame band has two columns, where on the right, and stacks when they do not fit — active
 - D028 — Action and position buttons carry iconify icons; corner chips show only theirs — active
 - D029 — A position picked on the review changes that photo only — active
+- D030 — The review's stamp row is built from Settings ticks by one pure rule — active

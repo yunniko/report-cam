@@ -22,5 +22,9 @@ fun <A : Activity> ActivityScenario<A>.waitFor(
 
 fun Activity.view(id: Int): View = findViewById(id)
 
+/** A quick stamp button on the review (G-005), found by its tag ([cz.julienika.reportcam.review.StampButtons.tag]). */
+fun Activity.stampButton(tag: String): View =
+    window.decorView.findViewWithTag(tag) ?: throw AssertionError("no stamp button $tag")
+
 /** True once the stamped photo can be sent: the Share button is on screen, its row included. */
 fun Activity.canSend(): Boolean = view(cz.julienika.reportcam.R.id.share_other).isShown

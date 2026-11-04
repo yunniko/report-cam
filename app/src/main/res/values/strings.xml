@@ -10,7 +10,6 @@
     <string name="saved_gallery">Saved</string>
     <string name="note_switch">Note</string>
     <string name="message_switch">Message</string>
-    <string name="stamp_scheme">Stamp</string>
     <string name="scheme_dark">Dark</string>
     <string name="scheme_light">Light</string>
     <string name="note_hint">Text printed on the stamp</string>

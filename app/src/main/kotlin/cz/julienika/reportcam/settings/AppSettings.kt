@@ -93,6 +93,9 @@ object Keys {
     const val COMPACT_TEXTS = "compact_texts"
     const val QUICK_MESSENGERS = "quick_messengers"
     const val QUICK_SIDE = "quick_side"
+    /** The review's quick stamp buttons ticked in Settings (G-005): placement ids, and scheme ids. */
+    const val QUICK_POSITIONS = "quick_positions"
+    const val QUICK_SCHEMES = "quick_schemes"
 
     const val DEFAULT_PATTERN = "yyyy-MM-dd HH:mm:ss"
     const val DEFAULT_PLACEMENT = "overlay_bottom_start"
@@ -153,6 +156,9 @@ data class AppSettings(
     val compactTexts: Boolean = false,
     /** The frame border chosen in Settings, kept for a frame picked on the review while an overlay is the default. */
     val frameBorder: Float = 0f,
+    /** The quick stamp buttons ticked for the review (G-005); all by default, so the row shows everything until trimmed. */
+    val quickPositions: Set<String> = PLACEMENTS.keys,
+    val quickSchemes: Set<SchemeId> = SchemeId.entries.toSet(),
 ) {
     /** These settings stamping with [id] instead: the review's dark/light switch. */
     fun withScheme(id: SchemeId): AppSettings =
@@ -219,6 +225,8 @@ data class AppSettings(
                 appTheme = AppTheme.of(s.string(Keys.APP_THEME, AppTheme.SYSTEM.id)),
                 compactTexts = s.bool(Keys.COMPACT_TEXTS, false),
                 frameBorder = border,
+                quickPositions = s.stringSet(Keys.QUICK_POSITIONS, PLACEMENTS.keys).filterTo(mutableSetOf()) { it in PLACEMENTS },
+                quickSchemes = s.stringSet(Keys.QUICK_SCHEMES, SchemeId.entries.map { it.id }.toSet()).mapNotNullTo(mutableSetOf(), SchemeId::of),
             )
         }
 
