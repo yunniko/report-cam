@@ -8,8 +8,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
 hash-named versions), M2 (compact text fields), M3 (two-column frame) and M4 (icons, release 0.4.0) are done;
 it waits for the Owner's sign-off. G-005 (quick stamp row) is active: M1 (per-photo position, D029) and
-M2 (the row on the review, D030) and M3 (its Settings ticks, the Note/Message settings, D031) are done;
-M4 is the 0.5.0 release.
+M2 (the row on the review, D030), M3 (its Settings ticks, the Note/Message settings, D031) and M4 (release
+0.5.0) are done; it waits for the Owner's sign-off.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -72,22 +72,22 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 166/166 unit; at M2/M3 ReviewActionsTest 12/12, ReviewTextSettingsTest 3/3, SettingsScreenTest 4/4,
-  ReviewNoteTest 5/5, ReviewCompactTest 3/3 (full instrumented suite last run at 2a30319: 40/40 (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 166/166 unit, 46/46 instrumented in 10 suites, none skipped (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
-  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right; M2 adds the position redraw kept across a restart and the named two-button row)). The emulator camera currently runs at about
+  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right; the position redraw kept across a restart; the named two-button row; the
+  quick tiles in Settings; review texts read only, without switches, and hidden). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
-- Icons (D028): Retake, Save to gallery, Share and the Dark/Light buttons carry an icon before the label, tinted
+- Icons (D028): Retake, Save to gallery and Share carry an icon before the label, tinted
   to the button text; the Settings corner chips show only their icon (named for TalkBack), the frame chips icon and
   label. Sources and licenses in README.
-- Release build 0.4.0 (code 8): signed with the D007 key, 1.61 MB, sent to the Owner. The review screen with its
-  icons and the Settings position grid open in it. `scripts/camera-release-check.sh` on 0.4.0: 10/10 with
-  `WAIT=6` twice; at the default 3 s wait the "screen off"
+- Release build 0.5.0 (code 9): signed with the D007 key, 1.63 MB, sent to the Owner.
+  `scripts/camera-release-check.sh` on 0.5.0 passes 10/10 with `WAIT=6`; its launch step right after an
+  install can miss the camera opening on this emulator (1 of 4 runs); at the default 3 s wait the "screen off"
   step can fail, because camera close on this emulator takes 2–5 s.
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
-On a real phone the Owner tested 0.3.1 and approved it (2026-11-04); 0.4.0 is not yet tested there. Not measured by us there: the place-name
+On a real phone the Owner tested 0.3.1 and approved it (2026-11-04); 0.4.0 and 0.5.0 are not yet tested there. Not measured by us there: the place-name
 format Google returns, each messenger's message handling, pinch zoom, startup times.
 
 ## How things fit together
@@ -142,7 +142,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 ## Next steps and open questions
 
 - G-004: done, awaiting the Owner's sign-off on 0.4.0.
-- G-005 M4: release 0.5.0 (full suites, release check, APK to the Owner).
+- G-005: done, awaiting the Owner's sign-off on 0.5.0.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 
@@ -150,6 +150,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-04 | M4 | APK 0.5.0 sent to the Owner: G-005 (quick stamp row, its Settings ticks, Note/Message settings) | `apksigner verify`; release camera check 10/10 twice after one launch-timing miss; unit 166/166, instrumented 46/46 |
 | 2026-11-04 | 2a30319 | APK 0.4.0 sent to the Owner: G-004 (Note row, hash-named versions, compact fields, two-column frame, icons) | `apksigner verify`; release camera check 10/10 twice; release review and Settings on the emulator; unit 153/153, instrumented 40/40 |
 | 2026-11-04 | 0731ad0 | APK 0.3.1 sent to the Owner: G-003 M5 phone-test fixes (brand-coloured quick buttons, icon-only single button, Owner palettes) | `apksigner verify`; release Settings, dialog and review on the emulator; unit 141/141, instrumented 31/31 |
 | 2026-11-04 | a089e6e | APK 0.3.0 sent to the Owner: G-003 (review screen, stamp schemes, settings redesign, app theme) | `apksigner verify`; release check 10/10 twice; startup vs 0.2.2; unit 135/135, instrumented 30/30 |
