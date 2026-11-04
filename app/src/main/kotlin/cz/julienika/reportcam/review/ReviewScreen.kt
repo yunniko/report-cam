@@ -424,7 +424,7 @@ class ReviewScreen(
     fun settingsChanged(settings: AppSettings) {
         current = settings
         if (!isActive) return
-        texts.compact = settings.compactTexts
+        texts.configure(settings.compactTexts, settings.textEditing, settings.textSwitches)
         paintControls(settings)
         (state as? ReviewState.Ready)?.let(::showStampButtons)
         if (state is ReviewState.Ready && ui.shareRow.isVisible) setShareVisible(true)
@@ -445,7 +445,7 @@ class ReviewScreen(
         generation++
         current = settings
         dropPending()
-        texts.compact = settings.compactTexts
+        texts.configure(settings.compactTexts, settings.textEditing, settings.textSwitches)
         paintControls(settings)
         sentSinceCapture = false
         ui.reviewImage.isVisible = true
@@ -462,8 +462,7 @@ class ReviewScreen(
     private fun setShareVisible(on: Boolean) {
         val ready = state as? ReviewState.Ready
         val visible = on && ready != null
-        ui.noteRow.isVisible = visible
-        ui.messageRow.isVisible = visible
+        texts.showRows(visible)
         ui.stampRow.isVisible = visible && stampButtons.hasButtons
         ui.shareRow.isVisible = visible
         ui.saveGallery.isVisible = visible

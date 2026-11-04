@@ -91,6 +91,9 @@ object Keys {
     /** The message switch's default; the key keeps its 0.3 name, "caption". */
     const val MESSAGE = "caption"
     const val COMPACT_TEXTS = "compact_texts"
+    /** Whether the review lets the Note and Message be edited, and shows their switches (G-005); both on by default. */
+    const val TEXT_EDITING = "text_editing"
+    const val TEXT_SWITCHES = "text_switches"
     const val QUICK_MESSENGERS = "quick_messengers"
     const val QUICK_SIDE = "quick_side"
     /** The review's quick stamp buttons ticked in Settings (G-005): placement ids, and scheme ids. */
@@ -154,6 +157,8 @@ data class AppSettings(
     val appTheme: AppTheme = AppTheme.SYSTEM,
     /** The review's note and message read as plain text until tapped (Owner, G-004); off by default. */
     val compactTexts: Boolean = false,
+    val textEditing: Boolean = true,
+    val textSwitches: Boolean = true,
     /** The frame border chosen in Settings, kept for a frame picked on the review while an overlay is the default. */
     val frameBorder: Float = 0f,
     /** The quick stamp buttons ticked for the review (G-005); all by default, so the row shows everything until trimmed. */
@@ -224,6 +229,8 @@ data class AppSettings(
                 preciseWithinM = preciseWithinM,
                 appTheme = AppTheme.of(s.string(Keys.APP_THEME, AppTheme.SYSTEM.id)),
                 compactTexts = s.bool(Keys.COMPACT_TEXTS, false),
+                textEditing = s.bool(Keys.TEXT_EDITING, true),
+                textSwitches = s.bool(Keys.TEXT_SWITCHES, true),
                 frameBorder = border,
                 quickPositions = s.stringSet(Keys.QUICK_POSITIONS, PLACEMENTS.keys).filterTo(mutableSetOf()) { it in PLACEMENTS },
                 quickSchemes = s.stringSet(Keys.QUICK_SCHEMES, SchemeId.entries.map { it.id }.toSet()).mapNotNullTo(mutableSetOf(), SchemeId::of),

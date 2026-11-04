@@ -13,6 +13,8 @@ import cz.julienika.reportcam.databinding.ActivityCameraBinding
  * photo. A row switched off shows only its name and switch. A note edit counts once it is finished (keyboard
  * Done, leaving the field, the switch); then [onNoteChanged] asks for the photo to be drawn again.
  * In [compact] mode a field reads as plain text until tapped, and goes back to plain text when the edit ends.
+ * Settings may turn off [editing] (the texts show, read only) and the [switches] (each row stays as it started,
+ * and one that started off is hidden); with both off the rows are hidden (Owner, G-005, D031).
  */
 class ReviewTexts(
     private val ui: ActivityCameraBinding,
@@ -31,11 +33,34 @@ class ReviewTexts(
     private val underlines = fields.associateWith { it.background }
 
     /** The Settings "Compact text fields" (Owner, G-004): fields read as plain text until tapped. */
-    var compact = false
-        set(on) {
-            field = on
-            fields.forEach { if (on && !it.hasFocus()) plain(it) else editable(it) }
-        }
+    private var compact = false
+
+    /** The Settings "Edit Note and Message in review" (G-005): off, the fields are plain text a tap does not open. */
+    private var editing = true
+
+    /** The Settings "Note and Message switches" (G-005). */
+    private var switches = true
+
+    /** Takes the three review-text settings, restyling the fields and switches at once. */
+    fun configure(
+        compact: Boolean,
+        editing: Boolean,
+        switches: Boolean,
+    ) {
+        this.compact = compact
+        this.editing = editing
+        this.switches = switches
+        if (!editing && fields.any { it.hasFocus() }) finishEditing()
+        fields.forEach { if (!editing || (compact && !it.hasFocus())) plain(it) else editable(it) }
+        ui.noteSwitch.isVisible = switches
+        ui.messageSwitch.isVisible = switches
+    }
+
+    /** Shows or hides the two rows; a row the settings leave nothing to show in stays hidden. */
+    fun showRows(on: Boolean) {
+        ui.noteRow.isVisible = on && rowShown(editing, switches, noteOn)
+        ui.messageRow.isVisible = on && rowShown(editing, switches, messageOn)
+    }
 
     /** The note the photo should carry: null when it is off or blank. */
     val stampedNote: String? get() = if (committedNoteOn) StampFacts.stampedNote(committedNote) else null
@@ -58,7 +83,7 @@ class ReviewTexts(
         }
         ui.noteText.setOnFocusChangeListener { _, focused -> if (!focused) letGo(ui.noteText) }
         ui.messageText.setOnFocusChangeListener { _, focused -> if (!focused) letGo(ui.messageText) }
-        fields.forEach { f -> f.setOnClickListener { if (compact && !f.hasFocus()) startEditing(f) } }
+        fields.forEach { f -> f.setOnClickListener { if (editing && compact && !f.hasFocus()) startEditing(f) } }
         ui.noteSwitch.setOnCheckedChangeListener { _, on ->
             ui.noteText.isVisible = on
             commit()
@@ -116,7 +141,7 @@ class ReviewTexts(
 
     /** A field lost the focus: back to plain text in compact mode, the keyboard closed unless the other has it. */
     private fun letGo(f: EditText) {
-        if (compact) plain(f)
+        if (compact || !editing) plain(f)
         if (fields.none { it.hasFocus() }) keyboard()?.hideSoftInputFromWindow(ui.root.windowToken, 0)
         if (f === ui.noteText) commit()
     }
@@ -153,5 +178,14 @@ class ReviewTexts(
         committedNote = note
         committedNoteOn = noteOn
         onNoteChanged()
+    }
+
+    companion object {
+        /** Whether a text row has anything to show: none with both settings off, and an off row none without its switch. */
+        internal fun rowShown(
+            editing: Boolean,
+            switches: Boolean,
+            rowOn: Boolean,
+        ) = (editing || switches) && (switches || rowOn)
     }
 }

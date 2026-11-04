@@ -53,6 +53,14 @@
     <string name="pref_save_gallery">Save to gallery when sent</string>
     <string name="pref_save_gallery_summary">Sending a photo also keeps a copy in Pictures/Report Cam. The Save button on the review screen saves without sending. A photo is never saved twice.</string>
     <string name="pref_caption">Send the stamp text as a message</string>
+    <string name="pref_text_editing">Edit Note and Message in review</string>
+    <string name="pref_text_editing_summary">Off: the texts show in review but cannot be changed there.</string>
+    <string name="pref_text_switches">Note and Message switches</string>
+    <string name="pref_text_switches_summary">Off: no switches in review; each row stays as set here. With editing off as well, both rows are hidden.</string>
+    <string name="pref_quick_positions">Quick position buttons</string>
+    <string name="pref_quick_positions_summary">The positions offered on the review screen. Tick at least one besides the position chosen above, or none show.</string>
+    <string name="pref_quick_schemes">Quick colour buttons</string>
+    <string name="pref_quick_schemes_summary">The colours offered on the review screen. Tick the one not chosen above, or none show.</string>
     <string name="pref_compact_texts">Compact text fields</string>
     <string name="pref_compact_texts_summary">In review, the note and the message read as plain text until you tap them, so there is less to look at.</string>
     <string name="pref_quick_messengers">Quick send buttons</string>
@@ -85,6 +93,18 @@
         <item>slack</item>
         <item>snapchat</item>
         <item>instagram</item>
+    </string-array>
+    <string-array name="quick_position_values" translatable="false">
+        <item>overlay_top_start</item>
+        <item>overlay_top_end</item>
+        <item>overlay_bottom_start</item>
+        <item>overlay_bottom_end</item>
+        <item>frame_top</item>
+        <item>frame_bottom</item>
+    </string-array>
+    <string-array name="quick_scheme_values" translatable="false">
+        <item>dark</item>
+        <item>light</item>
     </string-array>
     <string-array name="quick_messenger_defaults" translatable="false">
         <item>whatsapp</item>

@@ -82,6 +82,18 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun eachQuickStampButtonIsTickedSeparately() {
+        // Frame below is a text chip in the position grid, so only the quick tile carries it as a description.
+        tap(UiSelector().description("Frame below"))
+        waitUntil("position unticked") { prefs.getStringSet(Keys.QUICK_POSITIONS, null)?.contains("frame_bottom") == false }
+        assertEquals(5, prefs.getStringSet(Keys.QUICK_POSITIONS, null)?.size)
+        tap(UiSelector().description("Light"))
+        waitUntil("colour unticked") { prefs.getStringSet(Keys.QUICK_SCHEMES, null) == setOf("dark") }
+        tap(UiSelector().description("Light"))
+        waitUntil("and ticked again") { prefs.getStringSet(Keys.QUICK_SCHEMES, null) == setOf("dark", "light") }
+    }
+
+    @Test
     fun aFourthQuickMessengerIsRefused() {
         tap(UiSelector().description("Discord"))
         waitUntil("third stored") { prefs.getStringSet(Keys.QUICK_MESSENGERS, null)?.size == 3 }

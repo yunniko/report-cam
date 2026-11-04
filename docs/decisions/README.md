@@ -30,3 +30,4 @@
 - D028 — Action and position buttons carry iconify icons; corner chips show only theirs — active
 - D029 — A position picked on the review changes that photo only — active
 - D030 — The review's stamp row is built from Settings ticks by one pure rule — active
+- D031 — Two Settings switches shape the review's Note and Message rows — active

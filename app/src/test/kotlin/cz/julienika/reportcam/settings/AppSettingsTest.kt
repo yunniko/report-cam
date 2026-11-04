@@ -71,6 +71,8 @@ class AppSettingsTest {
         assertTrue(s.saveToGallery)
         assertTrue(s.message)
         assertFalse("compact text fields are off by default (Owner, G-004)", s.compactTexts)
+        assertTrue("review text editing is on by default (G-005)", s.textEditing)
+        assertTrue("and so are the Note and Message switches", s.textSwitches)
         assertTrue(s.showLocation)
         assertFalse(s.waitForPrecise)
         assertEquals(listOf("text", "datetime", "coordinates"), s.stampSpec.fields.map { it.id })
@@ -85,6 +87,8 @@ class AppSettingsTest {
     @Test
     fun compactTextFieldsCanBeTurnedOn() {
         assertTrue(AppSettings.from(FakeSource(Keys.COMPACT_TEXTS to true)).compactTexts)
+        assertFalse(AppSettings.from(FakeSource(Keys.TEXT_EDITING to false)).textEditing)
+        assertFalse(AppSettings.from(FakeSource(Keys.TEXT_SWITCHES to false)).textSwitches)
     }
 
     @Test

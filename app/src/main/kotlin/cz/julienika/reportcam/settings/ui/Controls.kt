@@ -17,7 +17,7 @@ import cz.julienika.reportcam.stamp.SchemeId
 
 internal fun Context.dp(v: Int): Int = (v * resources.displayMetrics.density + 0.5f).toInt()
 
-internal fun SchemeId.label(c: Context): String = c.getString(if (this == SchemeId.DARK) R.string.scheme_dark else R.string.scheme_light)
+internal fun SchemeId.label(c: Context): String = c.getString(StampLooks.SCHEMES.getValue(this).label)
 
 /** The settings screen's own controls, built in code: the app uses no Material Components (G-001). */
 internal object Controls {

@@ -113,6 +113,20 @@
             app:key="frame_border"
             app:summary="@string/pref_frame_border_summary"
             app:title="@string/pref_frame_border" />
+        <cz.julienika.reportcam.settings.ui.QuickStampPreference
+            app:defaultValue="@array/quick_position_values"
+            app:entries="@array/quick_position_values"
+            app:entryValues="@array/quick_position_values"
+            app:key="quick_positions"
+            app:summary="@string/pref_quick_positions_summary"
+            app:title="@string/pref_quick_positions" />
+        <cz.julienika.reportcam.settings.ui.QuickStampPreference
+            app:defaultValue="@array/quick_scheme_values"
+            app:entries="@array/quick_scheme_values"
+            app:entryValues="@array/quick_scheme_values"
+            app:key="quick_schemes"
+            app:summary="@string/pref_quick_schemes_summary"
+            app:title="@string/pref_quick_schemes" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_cat_photo" app:iconSpaceReserved="false">
@@ -153,7 +167,20 @@
             app:summary="@string/pref_caption_summary"
             app:title="@string/pref_caption" />
         <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="text_editing"
+            app:summary="@string/pref_text_editing_summary"
+            app:title="@string/pref_text_editing" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="text_switches"
+            app:summary="@string/pref_text_switches_summary"
+            app:title="@string/pref_text_switches" />
+        <SwitchPreferenceCompat
             app:defaultValue="false"
+            app:dependency="text_editing"
             app:iconSpaceReserved="false"
             app:key="compact_texts"
             app:summary="@string/pref_compact_texts_summary"
