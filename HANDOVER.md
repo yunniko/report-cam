@@ -5,8 +5,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 ## Current state
 
-G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen), M2 (stamp
-schemes, weekday), M3 (settings redesign), M4 (verification, release 0.3.0) and M5 (phone-test fixes, release 0.3.1) are done; the goal waits on the Owner's phone test of 0.3.1 and sign-off. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
+G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`); no goal is active. The Owner
+phone-tested release 0.3.1 and approved it on 2026-11-04. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1): caption switch (starts at the Settings value) and editable caption; up to three quick
   messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
@@ -66,8 +66,8 @@ schemes, weekday), M3 (settings redesign), M4 (verification, release 0.3.0) and 
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
-Not yet verified: anything on a real phone, including the place-name format Google returns there; the direct
-messengers and how each handles the caption; pinch zoom; startup times on a healthy device.
+On a real phone the Owner tested 0.3.1 and approved it (2026-11-04). Not measured by us there: the place-name
+format Google returns, each messenger's caption handling, pinch zoom, startup times.
 
 ## How things fit together
 
@@ -116,8 +116,7 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
 
 ## Next steps and open questions
 
-- PENDING APPROVAL: the Owner's phone test of 0.3.1 (brand-coloured quick buttons, scheme palettes), including
-  how each quick messenger handles the caption, then sign-off of G-003.
+- No goal is open; new work starts as a goal in `GOALS.md`.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 
