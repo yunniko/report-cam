@@ -86,11 +86,12 @@ class AppSettingsTest {
     }
 
     @Test
-    fun defaultsAreSmallPhotoGalleryOnCaptionOnLocationOn() {
+    fun defaultsAreSmallPhotoGalleryOnMessageOnLocationOnFieldsFull() {
         val s = AppSettings.from(FakeSource())
         assertEquals(1280, s.outputLongEdge)
         assertTrue(s.saveToGallery)
         assertTrue(s.message)
+        assertFalse("compact text fields are off by default (Owner, G-004)", s.compactTexts)
         assertTrue(s.showLocation)
         assertFalse(s.waitForPrecise)
         assertEquals(listOf("text", "datetime", "coordinates"), s.stampSpec.fields.map { it.id })
@@ -98,8 +99,13 @@ class AppSettingsTest {
     }
 
     @Test
-    fun captionCanBeSwitchedOff() {
+    fun messageCanBeSwitchedOff() {
         assertFalse(AppSettings.from(FakeSource(Keys.MESSAGE to false)).message)
+    }
+
+    @Test
+    fun compactTextFieldsCanBeTurnedOn() {
+        assertTrue(AppSettings.from(FakeSource(Keys.COMPACT_TEXTS to true)).compactTexts)
     }
 
     @Test

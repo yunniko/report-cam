@@ -53,6 +53,8 @@
     <string name="pref_save_gallery">Save to gallery when sent</string>
     <string name="pref_save_gallery_summary">Sending a photo also keeps a copy in Pictures/Report Cam. The Save button on the review screen saves without sending. A photo is never saved twice.</string>
     <string name="pref_caption">Send the stamp text as a message</string>
+    <string name="pref_compact_texts">Compact text fields</string>
+    <string name="pref_compact_texts_summary">In review, the note and the message read as plain text until you tap them, so there is less to look at.</string>
     <string name="pref_quick_messengers">Quick send buttons</string>
     <string name="pref_quick_messengers_summary">Up to three messengers get their own button on the review screen. Only installed ones show.</string>
     <string name="pref_quick_side">Single quick button</string>

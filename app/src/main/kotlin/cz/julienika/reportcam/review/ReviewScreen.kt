@@ -400,10 +400,14 @@ class ReviewScreen(
         if (wasActive) onLeave()
     }
 
+    /** The keyboard opened or closed; closing it ends a compact field's edit. */
+    fun keyboardShown(shown: Boolean) = texts.keyboardShown(shown)
+
     /** Settings changed (back from the Settings screen): the quick buttons and the theme follow at once. */
     fun settingsChanged(settings: AppSettings) {
         current = settings
         if (!isActive) return
+        texts.compact = settings.compactTexts
         paintControls(settings)
         if (state is ReviewState.Ready && ui.shareRow.isVisible) setShareVisible(true)
     }
@@ -425,6 +429,7 @@ class ReviewScreen(
         generation++
         current = settings
         dropPending()
+        texts.compact = settings.compactTexts
         paintControls(settings)
         sentSinceCapture = false
         ui.reviewImage.isVisible = true

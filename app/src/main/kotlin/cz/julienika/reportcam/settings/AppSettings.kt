@@ -90,6 +90,7 @@ object Keys {
     const val SAVE_GALLERY = "save_gallery"
     /** The message switch's default; the key keeps its 0.3 name, "caption". */
     const val MESSAGE = "caption"
+    const val COMPACT_TEXTS = "compact_texts"
     const val QUICK_MESSENGERS = "quick_messengers"
     const val QUICK_SIDE = "quick_side"
 
@@ -148,6 +149,8 @@ data class AppSettings(
     /** A fix within this radius counts as precise: for the marker, the wait and the stamp's mark alike. */
     val preciseWithinM: Float = FixQuality.DEFAULT_PRECISE_M,
     val appTheme: AppTheme = AppTheme.SYSTEM,
+    /** The review's note and message read as plain text until tapped (Owner, G-004); off by default. */
+    val compactTexts: Boolean = false,
 ) {
     /** These settings stamping with [id] instead: the review's dark/light switch. */
     fun withScheme(id: SchemeId): AppSettings =
@@ -205,6 +208,7 @@ data class AppSettings(
                 schemes = schemes,
                 preciseWithinM = preciseWithinM,
                 appTheme = AppTheme.of(s.string(Keys.APP_THEME, AppTheme.SYSTEM.id)),
+                compactTexts = s.bool(Keys.COMPACT_TEXTS, false),
             )
         }
 

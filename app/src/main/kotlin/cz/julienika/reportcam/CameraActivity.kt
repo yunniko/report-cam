@@ -141,6 +141,7 @@ class CameraActivity : ComponentActivity() {
             // The note and message fields open the keyboard: the controls ride above it.
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             ui.reviewControls.updatePadding(bottom = maxOf(bars.bottom, ime.bottom) + REVIEW_PAD)
+            review.keyboardShown(insets.isVisible(WindowInsetsCompat.Type.ime()))
             insets
         }
         // The stamped photo fits between the bars, so the controls never cover the stamp itself.

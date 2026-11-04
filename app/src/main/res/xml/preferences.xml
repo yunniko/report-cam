@@ -152,6 +152,12 @@
             app:key="caption"
             app:summary="@string/pref_caption_summary"
             app:title="@string/pref_caption" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="compact_texts"
+            app:summary="@string/pref_compact_texts_summary"
+            app:title="@string/pref_compact_texts" />
         <cz.julienika.reportcam.settings.ui.MessengerPickerPreference
             app:defaultValue="@array/quick_messenger_defaults"
             app:entries="@array/quick_messenger_labels"

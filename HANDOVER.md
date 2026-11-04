@@ -6,13 +6,15 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 ## Current state
 
 G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
-hash-named versions) is done, M2 to M4 are open.
+hash-named versions) and M2 (compact text fields) are done, M3 and M4 are open.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
   sent, starts at the Settings switch), each a switch that hides its field when off. A finished note edit (Done,
   leaving the field, the switch, or tapping Send/Save) redraws the photo; the message follows the note until edited by
-  hand. Up to three quick
+  hand. With Settings' "Compact text fields" on (off by default, D026) both fields read as plain text, without
+  underline or spelling marks, until tapped; Done, Back or a tap beside them makes them plain again. Seen in light
+  and dark. Up to three quick
   messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
   Save to gallery. Only installed messengers show. Seen on the emulator with stand-in apps (`stub-messenger/`) for
   1 left, 1 right, 2 and 3 buttons; the WhatsApp stand-in received the photo and the message. Quick buttons wear
@@ -61,9 +63,9 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 145 unit, 36 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 146/146 unit, 39/39 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
-  switch, message following, send while typing, restart). The emulator camera currently runs at about
+  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Release build 0.3.1 (code 7): signed with the D007 key, 1.60 MB, sent to the Owner. Settings, the colour dialog
   and the review screen with brand-coloured quick buttons open in it (custom Preference classes survive R8).
@@ -125,7 +127,6 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 ## Next steps and open questions
 
-- G-004 M2: a "compact text fields" setting (rows read as plain text until tapped), off by default.
 - G-004 M3: the frame stamp in two columns, place name and coordinates on the right. M4: release 0.4.0 (code 8).
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
