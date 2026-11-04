@@ -1,5 +1,5 @@
 # report-cam — Handover
-Last verified: 2026-11-04 at d917e75
+Last verified: 2026-11-04 at 9db3bc8
 
 A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept local. Charter: `E:\CLAUDE\COMPANY\`.
 
@@ -150,7 +150,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
-| 2026-11-04 | M4 | APK 0.5.0 sent to the Owner: G-005 (quick stamp row, its Settings ticks, Note/Message settings) | `apksigner verify`; release camera check 10/10 twice after one launch-timing miss; unit 166/166, instrumented 46/46 |
+| 2026-11-04 | 9db3bc8 | APK 0.5.0 sent to the Owner: G-005 (quick stamp row, its Settings ticks, Note/Message settings) | `apksigner verify`; release camera check 10/10 twice after one launch-timing miss; unit 166/166, instrumented 46/46 |
 | 2026-11-04 | 2a30319 | APK 0.4.0 sent to the Owner: G-004 (Note row, hash-named versions, compact fields, two-column frame, icons) | `apksigner verify`; release camera check 10/10 twice; release review and Settings on the emulator; unit 153/153, instrumented 40/40 |
 | 2026-11-04 | 0731ad0 | APK 0.3.1 sent to the Owner: G-003 M5 phone-test fixes (brand-coloured quick buttons, icon-only single button, Owner palettes) | `apksigner verify`; release Settings, dialog and review on the emulator; unit 141/141, instrumented 31/31 |
 | 2026-11-04 | a089e6e | APK 0.3.0 sent to the Owner: G-003 (review screen, stamp schemes, settings redesign, app theme) | `apksigner verify`; release check 10/10 twice; startup vs 0.2.2; unit 135/135, instrumented 30/30 |
