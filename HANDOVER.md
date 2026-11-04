@@ -1,5 +1,5 @@
 # report-cam — Handover
-Last verified: 2026-11-04 at cc97cca
+Last verified: 2026-11-04 at 2a30319
 
 A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept local. Charter: `E:\CLAUDE\COMPANY\`.
 
@@ -144,6 +144,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-04 | 2a30319 | APK 0.4.0 sent to the Owner: G-004 (Note row, hash-named versions, compact fields, two-column frame, icons) | `apksigner verify`; release camera check 10/10 twice; release review and Settings on the emulator; unit 153/153, instrumented 40/40 |
 | 2026-11-04 | 0731ad0 | APK 0.3.1 sent to the Owner: G-003 M5 phone-test fixes (brand-coloured quick buttons, icon-only single button, Owner palettes) | `apksigner verify`; release Settings, dialog and review on the emulator; unit 141/141, instrumented 31/31 |
 | 2026-11-04 | a089e6e | APK 0.3.0 sent to the Owner: G-003 (review screen, stamp schemes, settings redesign, app theme) | `apksigner verify`; release check 10/10 twice; startup vs 0.2.2; unit 135/135, instrumented 30/30 |
 | 2026-11-03 | 2ebdd63 | Repo pushed public to github.com/yunniko/report-cam; APK 0.2.2 sent: city from the address line (D014) | secrets scan of the history; `apksigner verify`; unit 103/103 |
