@@ -273,7 +273,7 @@
                 style="@style/ReviewButton" />
         </LinearLayout>
 
-        <!-- Share, with a single quick messenger before or after it; Share is the wider. -->
+        <!-- Share, with a single quick messenger before or after it as an icon; Share takes the rest. -->
         <LinearLayout
             android:id="@+id/share_row"
             android:layout_width="match_parent"
@@ -281,9 +281,9 @@
             android:orientation="horizontal"
             android:visibility="gone">
 
-            <Button
+            <ImageButton
                 android:id="@+id/quick_start"
-                style="@style/ReviewButton"
+                style="@style/ReviewIconButton"
                 android:visibility="gone" />
 
             <Button
@@ -292,9 +292,9 @@
                 android:layout_weight="2"
                 android:text="@string/share_other" />
 
-            <Button
+            <ImageButton
                 android:id="@+id/quick_end"
-                style="@style/ReviewButton"
+                style="@style/ReviewIconButton"
                 android:visibility="gone" />
         </LinearLayout>
 

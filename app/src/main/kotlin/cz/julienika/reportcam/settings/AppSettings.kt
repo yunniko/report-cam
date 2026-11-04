@@ -244,15 +244,20 @@ data class AppSettings(
                 else -> StampStyle.TEXT_MEDIUM
             }
 
-        /** A stored colour that does not parse falls back to the scheme's default, never to a crash. */
+        /**
+         * A stored colour that does not parse, or is not in the scheme's palette (an older palette's choice),
+         * falls back to the scheme's default, so every stamp pairs readable colours (D024).
+         */
         private fun scheme(
             s: SettingsSource,
             id: SchemeId,
         ): StampScheme {
             val d = legacyDefault(s, id)
             return StampScheme(
-                background = StampScheme.parseColor(s.string(Keys.schemeBackground(id), "")) ?: d.background,
-                text = StampScheme.parseColor(s.string(Keys.schemeText(id), "")) ?: d.text,
+                background =
+                    StampScheme.parseColor(s.string(Keys.schemeBackground(id), ""))?.takeIf { it in StampScheme.backgrounds(id) }
+                        ?: d.background,
+                text = StampScheme.parseColor(s.string(Keys.schemeText(id), ""))?.takeIf { it in StampScheme.texts(id) } ?: d.text,
                 overlayOpacity =
                     s
                         .string(Keys.schemeOpacity(id), "")

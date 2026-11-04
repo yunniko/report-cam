@@ -39,8 +39,8 @@ internal object SchemeDialog {
 
         val overlayView = preview(c, R.string.scheme_preview_overlay)
         val frameView = preview(c, R.string.scheme_preview_frame)
-        val backgrounds = GridLayout(c).apply { columnCount = 5 }
-        val texts = GridLayout(c).apply { columnCount = 5 }
+        val backgrounds = GridLayout(c).apply { columnCount = StampScheme.backgrounds(id).size }
+        val texts = GridLayout(c).apply { columnCount = StampScheme.texts(id).size }
         val opacityLabel = label(c, "")
         val opacity =
             SeekBar(c).apply {
@@ -52,11 +52,11 @@ internal object SchemeDialog {
             val s = base.copy(schemes = base.schemes + (id to scheme)).withScheme(id)
             overlayView.setImageBitmap(StampPreview.overlay(c, s))
             frameView.setImageBitmap(StampPreview.frame(c, s))
-            fill(backgrounds, StampScheme.BACKGROUNDS, scheme.background) {
+            fill(backgrounds, StampScheme.backgrounds(id), scheme.background) {
                 scheme = scheme.copy(background = it)
                 refresh()
             }
-            fill(texts, StampScheme.TEXTS, scheme.text) {
+            fill(texts, StampScheme.texts(id), scheme.text) {
                 scheme = scheme.copy(text = it)
                 refresh()
             }

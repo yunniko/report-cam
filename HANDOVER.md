@@ -6,14 +6,19 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 ## Current state
 
 G-001 and G-002 are done and signed off (archived in `docs/goals-archive.md`). G-003 is open: M1 (review screen), M2 (stamp
-schemes, weekday) and M3 (settings redesign) and M4 (verification, release 0.3.0) are done; the goal waits on the Owner's phone test and sign-off. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
+schemes, weekday), M3 (settings redesign), M4 (verification, release 0.3.0) and M5 (phone-test fixes, release 0.3.1) are done; the goal waits on the Owner's phone test of 0.3.1 and sign-off. State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1): caption switch (starts at the Settings value) and editable caption; up to three quick
   messenger buttons, own row for two or three, beside Share (left or right, D016) for one; Share…; Retake and
   Save to gallery. Only installed messengers show. Seen on the emulator with stand-in apps (`stub-messenger/`) for
-  1 left, 1 right, 2 and 3 buttons; the WhatsApp stand-in received the photo and the caption.
+  1 left, 1 right, 2 and 3 buttons; the WhatsApp stand-in received the photo and the caption. Quick buttons wear
+  their messenger's brand colour with a white or black foreground, whichever reads at 4.5:1; a single one beside
+  Share is its icon alone (D023). Changing the quick messengers in Settings while a photo is in review shows on
+  coming back, without a restart. Seen on the emulator.
 - Stamp schemes (G-003 M2): dark (default: white on 60 % black) and light (black on 70 % white), each with its
-  own background, text colour and overlay opacity (20–100 %, a frame is always opaque); the old three-way colour
+  own palettes from the Owner's colour chart plus black and white (six dark backgrounds with light texts, six light
+  with dark; every pairing at least 4.5:1, D024),
+  background, text colour and overlay opacity (20–100 %, a frame is always opaque); the old three-way colour
   setting carries over once. The review screen's Dark/Light buttons, each drawn in its scheme's colours, restamp
   from the kept camera JPEG into `report_<time>_<scheme>.jpg` (D019); the new version is unsaved, so Save adds one
   copy of it and the earlier copy stays. Seen on the emulator.
@@ -51,14 +56,14 @@ schemes, weekday) and M3 (settings redesign) and M4 (verification, release 0.3.0
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 135 unit, 30 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 141 unit, 31 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; caption, one-copy rule, stamped-photo restore, restamp and its restore). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
-- Release build 0.3.0 (code 6): signed with the D007 key, 1.60 MB, sent to the Owner. Settings and the colour
-  dialog open in it (custom Preference classes survive R8).
+- Release build 0.3.1 (code 7): signed with the D007 key, 1.60 MB, sent to the Owner. Settings, the colour dialog
+  and the review screen with brand-coloured quick buttons open in it (custom Preference classes survive R8).
   `scripts/camera-release-check.sh` on 0.3.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
   step can fail, because camera close on this emulator takes 2–5 s.
-- Startup to a streaming preview, 0.3.0 and 0.2.2 alternated on one emulator, 10 cold starts each: 0.3.0
+- Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
 Not yet verified: anything on a real phone, including the place-name format Google returns there; the direct
@@ -111,8 +116,8 @@ messengers and how each handles the caption; pinch zoom; startup times on a heal
 
 ## Next steps and open questions
 
-- PENDING APPROVAL: the Owner's phone test of 0.3.0, including how each quick messenger handles the caption,
-  then sign-off of G-003.
+- PENDING APPROVAL: the Owner's phone test of 0.3.1 (brand-coloured quick buttons, scheme palettes), including
+  how each quick messenger handles the caption, then sign-off of G-003.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

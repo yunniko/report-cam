@@ -77,7 +77,7 @@ data class ReviewPalette(
         }
 
     companion object {
-        private const val CORNER_DP = 8f
+        const val CORNER_DP = 8f
 
         val DARK = ReviewPalette(0x99000000.toInt(), 0xFFFFFFFF.toInt(), 0xB3FFFFFF.toInt(), 0xFF2A2E33.toInt(), 0xFF4A5058.toInt())
         val LIGHT = ReviewPalette(0xEBEEF1F4.toInt(), 0xFF1B1F23.toInt(), 0x991B1F23.toInt(), 0xFFFFFFFF.toInt(), 0xFFC9CFD6.toInt())

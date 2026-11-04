@@ -183,6 +183,7 @@ class CameraActivity : ComponentActivity() {
         super.onStart()
         // Settings may have changed while the settings screen was open.
         settings = AppSettings.from(PrefsSource.of(this), stampLabels())
+        review.settingsChanged(settings)
         ui.cropGuide.ratio = settings.aspect
         // After a send, coming back means "next photo", not the old review.
         if (review.isActive && review.sentSinceCapture) review.leave()

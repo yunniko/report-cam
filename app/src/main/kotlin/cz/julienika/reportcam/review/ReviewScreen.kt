@@ -1,6 +1,7 @@
 package cz.julienika.reportcam.review
 
 import android.content.ActivityNotFoundException
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -8,6 +9,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.view.isVisible
@@ -106,6 +108,12 @@ class ReviewScreen(
         private set
 
     val isActive: Boolean get() = state != State.Idle
+
+    /**
+     * The settings as they are now, for what only presents the photo: the quick buttons and the theme. Stamping
+     * keeps the settings it started with; these follow a change made in Settings while the photo is in review.
+     */
+    private var current: AppSettings? = null
 
     init {
         ui.retake.setOnClickListener { leave() }
@@ -466,13 +474,31 @@ class ReviewScreen(
         if (wasActive) onLeave()
     }
 
-    private fun enter(settings: AppSettings) {
-        generation++
+    /** Settings changed (back from the Settings screen): the quick buttons and the theme follow at once. */
+    fun settingsChanged(settings: AppSettings) {
+        current = settings
+        if (!isActive) return
+        paintControls(settings)
+        if (state is State.Ready && ui.shareRow.isVisible) setShareVisible(true)
+    }
+
+    /** The scheme buttons are drawn in their schemes and the quick buttons in their brands, so the palette skips them. */
+    private fun paintControls(settings: AppSettings) {
         val systemDark =
             activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         ReviewPalette
             .of(settings.appTheme.isDark(systemDark))
-            .paint(ui.reviewControls, activity.resources.displayMetrics.density, setOf(ui.schemeDark, ui.schemeLight))
+            .paint(
+                ui.reviewControls,
+                activity.resources.displayMetrics.density,
+                setOf(ui.schemeDark, ui.schemeLight, ui.quick1, ui.quick2, ui.quick3, ui.quickStart, ui.quickEnd),
+            )
+    }
+
+    private fun enter(settings: AppSettings) {
+        generation++
+        current = settings
+        paintControls(settings)
         sentSinceCapture = false
         ui.reviewImage.isVisible = true
         ui.reviewControls.isVisible = true
@@ -496,13 +522,15 @@ class ReviewScreen(
             ui.quickRow.isVisible = false
             return
         }
-        val rows = ShareButtons.arrange(ready.settings.quickMessengers, ready.settings.quickOnStart) { installed(it) != null }
+        val s = current ?: ready.settings
+        val rows = ShareButtons.arrange(s.quickMessengers, s.quickOnStart) { installed(it) != null }
         ui.quickRow.isVisible = rows.ownRow.isNotEmpty()
         listOf(ui.quick1, ui.quick2, ui.quick3).forEachIndexed { i, b -> bind(b, rows.ownRow.getOrNull(i)) }
-        bind(ui.quickStart, rows.beside?.takeIf { rows.besideOnStart })
-        bind(ui.quickEnd, rows.beside?.takeIf { !rows.besideOnStart })
+        bindIcon(ui.quickStart, rows.beside?.takeIf { rows.besideOnStart })
+        bindIcon(ui.quickEnd, rows.beside?.takeIf { !rows.besideOnStart })
     }
 
+    /** A quick button in its own row: icon and name on the messenger's colour. */
     private fun bind(
         button: Button,
         messenger: Messenger?,
@@ -511,8 +539,31 @@ class ReviewScreen(
         if (messenger == null) return
         button.text = messenger.label
         button.setCompoundDrawablesRelativeWithIntrinsicBounds(messenger.icon, 0, 0, 0)
+        button.compoundDrawableTintList = ColorStateList.valueOf(messenger.foreground)
+        button.setTextColor(messenger.foreground)
+        button.background = brandBackground(messenger)
         button.setOnClickListener { share(messenger) }
     }
+
+    /** The single quick button beside Share: the icon alone (Owner, G-003 phone test), named for TalkBack. */
+    private fun bindIcon(
+        button: ImageButton,
+        messenger: Messenger?,
+    ) {
+        button.isVisible = messenger != null
+        if (messenger == null) return
+        button.setImageResource(messenger.icon)
+        button.imageTintList = ColorStateList.valueOf(messenger.foreground)
+        button.contentDescription = messenger.label
+        button.background = brandBackground(messenger)
+        button.setOnClickListener { share(messenger) }
+    }
+
+    private fun brandBackground(m: Messenger) =
+        GradientDrawable().apply {
+            cornerRadius = ReviewPalette.CORNER_DP * activity.resources.displayMetrics.density
+            setColor(m.brandColor)
+        }
 
     private fun showSaved(saved: Boolean) {
         ui.saveGallery.isEnabled = !saved

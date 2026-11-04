@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.stamp
 
+import cz.julienika.reportcam.ui.Contrast
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -28,13 +29,33 @@ class StampSchemeTest {
     }
 
     @Test
-    fun theDefaultsAreInThePalettesAndThePalettesAreOpaque() {
+    fun theDefaultsAreInTheirSchemesPalettesAndThePalettesAreOpaque() {
         for (id in SchemeId.entries) {
             val d = StampScheme.default(id)
-            assertTrue(d.background in StampScheme.BACKGROUNDS)
-            assertTrue(d.text in StampScheme.TEXTS)
+            assertTrue(d.background in StampScheme.backgrounds(id))
+            assertTrue(d.text in StampScheme.texts(id))
+            assertTrue((StampScheme.backgrounds(id) + StampScheme.texts(id)).all { it ushr 24 == 0xFF })
         }
-        assertTrue((StampScheme.BACKGROUNDS + StampScheme.TEXTS).all { it ushr 24 == 0xFF })
         assertEquals(SchemeId.LIGHT, SchemeId.DARK.other)
+    }
+
+    @Test
+    fun everyBackgroundAndTextPairingInASchemeIsReadable() {
+        for (id in SchemeId.entries) {
+            for (bg in StampScheme.backgrounds(id)) {
+                for (fg in StampScheme.texts(id)) {
+                    val ratio = Contrast.ratio(bg, fg)
+                    assertTrue("$id ${StampScheme.formatColor(fg)} on ${StampScheme.formatColor(bg)}: $ratio", ratio >= Contrast.READABLE)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun theDarkSchemeHasDarkBackgroundsAndTheLightSchemeLightOnes() {
+        val darkest = StampScheme.texts(SchemeId.DARK).minOf { Contrast.luminance(it) }
+        assertTrue(StampScheme.backgrounds(SchemeId.DARK).all { Contrast.luminance(it) < darkest })
+        val lightest = StampScheme.texts(SchemeId.LIGHT).maxOf { Contrast.luminance(it) }
+        assertTrue(StampScheme.backgrounds(SchemeId.LIGHT).all { Contrast.luminance(it) > lightest })
     }
 }

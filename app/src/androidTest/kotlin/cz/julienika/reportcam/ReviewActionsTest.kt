@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Switch
+import androidx.lifecycle.Lifecycle
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.intent.Intents
@@ -23,10 +24,12 @@ import cz.julienika.reportcam.helpers.pendingDir
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
 import cz.julienika.reportcam.settings.Keys
+import cz.julienika.reportcam.share.Sharing
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -110,6 +113,28 @@ class ReviewActionsTest {
         while (galleryCopies(name) < expected && System.currentTimeMillis() < end) Thread.sleep(100)
         Thread.sleep(1_000)
         assertEquals("gallery copies of $name", expected, galleryCopies(name))
+    }
+
+    /** Needs the stand-in messengers (`stub-messenger/`) for WhatsApp and Telegram. */
+    @Test
+    fun changedQuickMessengersShowOnComingBackFromSettings() {
+        assumeTrue(Sharing.isInstalled(context, "com.whatsapp") && Sharing.isInstalled(context, "org.telegram.messenger"))
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        prefs.edit().putStringSet(Keys.QUICK_MESSENGERS, setOf("whatsapp", "telegram")).commit()
+        ActivityScenario.launch(CameraActivity::class.java).use { s ->
+            s.shootAndStamp()
+            s.onActivity { assertTrue("two get their own row", it.view(R.id.quick_row).isShown) }
+            // As if Settings were opened and closed while the photo is in review.
+            s.moveToState(Lifecycle.State.CREATED)
+            prefs.edit().putStringSet(Keys.QUICK_MESSENGERS, setOf("whatsapp")).commit()
+            s.moveToState(Lifecycle.State.RESUMED)
+            s.onActivity {
+                assertFalse(it.view(R.id.quick_row).isShown)
+                val single = it.view(R.id.quick_start)
+                assertTrue("one sits beside Share", single.isShown)
+                assertEquals("icon only, named for TalkBack", "WhatsApp", single.contentDescription)
+            }
+        }
     }
 
     @Test

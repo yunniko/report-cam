@@ -47,15 +47,21 @@ data class StampScheme(
 
         fun default(id: SchemeId) = if (id == SchemeId.DARK) DEFAULT_DARK else DEFAULT_LIGHT
 
-        /** Backgrounds on offer: dark ones first, then light ones. */
-        val BACKGROUNDS: List<Int> =
-            listOf(0x000000, 0x37474F, 0x0D2B45, 0x1B3A26, 0x5D1A1A, 0xFFFFFF, 0xE0E0E0, 0xFFF3D6, 0xFFD600, 0xCDE8F6)
-                .map { it or OPAQUE }
+        /*
+         * Each scheme's own palettes, from the Owner's colour chart plus black and white (G-003 phone test): the
+         * dark scheme has dark backgrounds and light text, the light scheme the reverse, and every pairing within a
+         * scheme is readable (D024). Order: black or white, then slate/spruce/navy/charcoal/auburn and their kin.
+         */
+        private val DARK_BACKGROUNDS = opaque(0x000000, 0x2B3135, 0x1B2720, 0x1A212E, 0x2A2725, 0x281F26)
+        private val DARK_TEXTS = opaque(0xFFFFFF, 0xFFF9EB, 0xDFF7EB, 0xFFEBAE, 0xFFDDD1, 0xE1F4FC)
+        private val LIGHT_BACKGROUNDS = opaque(0xFFFFFF, 0xD8E2DA, 0xEBE6DC, 0xEADECE, 0xDFE2EB, 0xE6E1D5)
+        private val LIGHT_TEXTS = opaque(0x000000, 0x101B30, 0x1C1E21, 0x0F2B18, 0x3F2E24, 0x391629)
 
-        /** Text colours on offer, each readable on at least one background above. */
-        val TEXTS: List<Int> =
-            listOf(0xFFFFFF, 0x000000, 0xFFD600, 0xF2A33A, 0xB9F6CA, 0x80D8FF, 0xFF8A80, 0x0D2B45, 0x8B0000, 0x1B5E20)
-                .map { it or OPAQUE }
+        fun backgrounds(id: SchemeId): List<Int> = if (id == SchemeId.DARK) DARK_BACKGROUNDS else LIGHT_BACKGROUNDS
+
+        fun texts(id: SchemeId): List<Int> = if (id == SchemeId.DARK) DARK_TEXTS else LIGHT_TEXTS
+
+        private fun opaque(vararg rgb: Int) = rgb.map { it or OPAQUE }
 
         /** "#RRGGBB" as stored in settings; null for anything else. */
         fun parseColor(s: String): Int? {

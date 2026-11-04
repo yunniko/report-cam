@@ -22,3 +22,5 @@
 - D020 — "Precise" means within 5, 10, 20, 30 or 50 m, default 20 m — active
 - D021 — Settings controls are custom Preference rows, drawn as cards by one decoration — active
 - D022 — The app theme is applied per screen; the live camera view stays black — active
+- D023 — Quick buttons wear their messenger's colour; a single one is its icon alone — active
+- D024 — Each stamp scheme has its own palettes, and every pairing in it reads at 4.5:1 — active

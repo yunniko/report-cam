@@ -193,19 +193,34 @@ class AppSettingsTest {
             AppSettings.from(
                 FakeSource(
                     Keys.STAMP_SCHEME to "light",
-                    Keys.schemeBackground(SchemeId.LIGHT) to "#FFF3D6",
-                    Keys.schemeText(SchemeId.LIGHT) to "#0D2B45",
+                    Keys.schemeBackground(SchemeId.LIGHT) to "#EBE6DC",
+                    Keys.schemeText(SchemeId.LIGHT) to "#101B30",
                     Keys.schemeOpacity(SchemeId.LIGHT) to "100",
                     Keys.schemeBackground(SchemeId.DARK) to "not a colour",
                     Keys.schemeOpacity(SchemeId.DARK) to "5",
                 ),
             )
         assertEquals(SchemeId.LIGHT, a.scheme)
-        assertEquals(0xFF0D2B45.toInt(), a.stampSpec.style.textColor)
-        assertEquals(0xFFFFF3D6.toInt(), a.stampSpec.style.backgroundColor)
+        assertEquals(0xFF101B30.toInt(), a.stampSpec.style.textColor)
+        assertEquals(0xFFEBE6DC.toInt(), a.stampSpec.style.backgroundColor)
         val dark = a.schemes.getValue(SchemeId.DARK)
         assertEquals(StampScheme.DEFAULT_DARK.background, dark.background)
         assertEquals("clamped to the minimum", StampScheme.MIN_OPACITY, dark.overlayOpacity)
+    }
+
+    @Test
+    fun aColourOutsideItsSchemesPaletteFallsBackToTheDefault() {
+        val a =
+            AppSettings.from(
+                FakeSource(
+                    // Light ones in the dark scheme: valid colours, but from the old shared palette.
+                    Keys.schemeBackground(SchemeId.DARK) to "#FFD600",
+                    Keys.schemeText(SchemeId.DARK) to "#000000",
+                ),
+            )
+        val dark = a.schemes.getValue(SchemeId.DARK)
+        assertEquals(StampScheme.DEFAULT_DARK.background, dark.background)
+        assertEquals(StampScheme.DEFAULT_DARK.text, dark.text)
     }
 
     @Test

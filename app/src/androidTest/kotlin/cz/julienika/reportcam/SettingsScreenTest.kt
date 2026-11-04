@@ -1,10 +1,12 @@
 package cz.julienika.reportcam
 
+import android.Manifest
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiScrollable
@@ -18,6 +20,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.regex.Pattern
@@ -25,6 +28,10 @@ import java.util.regex.Pattern
 /** The redesigned Settings controls (G-003 M3) store what they show, through the real screen. */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
+    /** The location rows, the accuracy slider among them, are disabled while location is denied. */
+    @get:Rule
+    val permissions: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.ACCESS_FINE_LOCATION)
+
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -86,16 +93,16 @@ class SettingsScreenTest {
     @Test
     fun theColourDialogStoresOnlyOnSave() {
         tap(UiSelector().text("Edit colours").instance(0))
-        // #80D8FF is in the text palette only.
-        device.wait(Until.findObject(By.desc("#80D8FF")), TIMEOUT).click()
+        // #E1F4FC is in the text palette only.
+        device.wait(Until.findObject(By.desc("#E1F4FC")), TIMEOUT).click()
         device.findObject(By.text(Pattern.compile("(?i)cancel"))).click()
         device.waitForIdle()
         assertNull(prefs.getString(Keys.schemeText(SchemeId.DARK), null))
 
         tap(UiSelector().text("Edit colours").instance(0))
-        device.wait(Until.findObject(By.desc("#80D8FF")), TIMEOUT).click()
+        device.wait(Until.findObject(By.desc("#E1F4FC")), TIMEOUT).click()
         device.findObject(By.text(Pattern.compile("(?i)save"))).click()
-        waitUntil("colour stored") { prefs.getString(Keys.schemeText(SchemeId.DARK), null) == "#80D8FF" }
+        waitUntil("colour stored") { prefs.getString(Keys.schemeText(SchemeId.DARK), null) == "#E1F4FC" }
         assertNotNull(prefs.getString(Keys.schemeBackground(SchemeId.DARK), null))
     }
 
