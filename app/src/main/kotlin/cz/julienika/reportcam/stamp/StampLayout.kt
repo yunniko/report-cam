@@ -114,23 +114,41 @@ data class TextBlock(
 }
 
 /**
+ * A stamp's lines before they are wrapped or placed: what and when in [start], where in [end] (fields that
+ * [StampField.describesPlace]). [sizePx] is the text size, and the unit every margin and padding is measured in.
+ */
+class StampText(
+    val start: List<String>,
+    val end: List<String>,
+    val sizePx: Float,
+    private val m: TextMeasurer,
+) {
+    /** Every line, what before where, for a placement with one column. */
+    val all: List<String> get() = start + end
+
+    fun width(line: String): Float = m.width(line, sizePx)
+
+    /** [lines] wrapped to [maxWidth], never narrower than one em. */
+    fun block(
+        lines: List<String>,
+        maxWidth: Float,
+    ): TextBlock = TextBlock.build(lines, maxWidth.coerceAtLeast(sizePx), sizePx, m)
+
+    /** The widest single word, which wrapping to a narrower width would have to split. */
+    fun longestWord(lines: List<String>): Float = lines.flatMap { it.split(' ') }.maxOfOrNull(::width) ?: 0f
+}
+
+/**
  * Where the stamp goes. Overlay and frame are two implementations; a new layout (a side band, a
  * caption strip) is a new class here, and neither fields nor the renderer change.
  */
 interface StampPlacement {
     val id: String
 
-    /** Width available to one line of text on an image of this size. */
-    fun maxTextWidth(
-        imageWidth: Int,
-        unit: Float,
-    ): Float
-
     fun place(
         imageWidth: Int,
         imageHeight: Int,
-        block: TextBlock,
-        unit: Float,
+        text: StampText,
     ): StampGeometry
 }
 
@@ -150,17 +168,13 @@ data class OverlayPlacement(
 ) : StampPlacement {
     override val id = "overlay_" + corner.name.lowercase()
 
-    override fun maxTextWidth(
-        imageWidth: Int,
-        unit: Float,
-    ) = imageWidth - 2 * (MARGIN + PADDING) * unit
-
     override fun place(
         imageWidth: Int,
         imageHeight: Int,
-        block: TextBlock,
-        unit: Float,
+        text: StampText,
     ): StampGeometry {
+        val unit = text.sizePx
+        val block = text.block(text.all, imageWidth - 2 * (MARGIN + PADDING) * unit)
         val pad = PADDING * unit
         val margin = MARGIN * unit
         val boxW = block.width + 2 * pad
@@ -194,7 +208,8 @@ data class OverlayPlacement(
 /**
  * A solid band added above or below the photo, and a border of the band's colour on the other three
  * edges; the photo itself is not covered. [borderFraction] is the border's width as a fraction of the
- * photo's short edge; 0 leaves only the band.
+ * photo's short edge; 0 leaves only the band. The band has two top-aligned columns, what and when on the
+ * left and where right-aligned on the right, and stacks them when they do not fit side by side (D027).
  */
 data class FramePlacement(
     val top: Boolean,
@@ -202,28 +217,27 @@ data class FramePlacement(
 ) : StampPlacement {
     override val id = if (top) "frame_top" else "frame_bottom"
 
-    override fun maxTextWidth(
-        imageWidth: Int,
-        unit: Float,
-    ) = imageWidth - 2 * PADDING * unit
-
     override fun place(
         imageWidth: Int,
         imageHeight: Int,
-        block: TextBlock,
-        unit: Float,
+        text: StampText,
     ): StampGeometry {
+        val unit = text.sizePx
         val pad = PADDING * unit
         val border = (borderFraction.coerceAtLeast(0f) * minOf(imageWidth, imageHeight)).roundToInt()
         val outW = imageWidth + 2 * border
-        val bandH = ceil(block.height + 2 * pad).roundToInt()
+        // Text lines up with the photo's edges, not the border's.
+        val left = border + pad
+        val room = imageWidth - 2 * pad
+        val columns = columns(text, room)
+        val start = columns?.first ?: text.block(text.all, room)
+        val end = columns?.second
+        val bandH = ceil(maxOf(start.height, end?.height ?: 0f) + 2 * pad).roundToInt()
         // The band replaces the border on its own edge.
         val bandTop = if (top) 0f else (border + imageHeight).toFloat()
-        val lines =
-            block.lines.mapIndexed { i, text ->
-                // Text lines up with the photo's edge, not the border's.
-                PlacedLine(text, border + pad, bandTop + pad + i * block.lineHeight + block.ascent)
-            }
+        fun TextBlock.placed(x: (Int) -> Float) =
+            lines.mapIndexed { i, line -> PlacedLine(line, x(i), bandTop + pad + i * lineHeight + ascent) }
+        val lines = start.placed { left } + end?.placed { i -> left + room - end.widths[i] }.orEmpty()
         return StampGeometry(
             outputWidth = outW,
             outputHeight = imageHeight + border + bandH,
@@ -232,13 +246,45 @@ data class FramePlacement(
             // The whole output is the frame colour; the photo is drawn over its middle.
             box = Box(0f, 0f, outW.toFloat(), (imageHeight + border + bandH).toFloat()),
             boxCornerRadius = 0f,
-            textSizePx = block.sizePx,
+            textSizePx = unit,
             lines = lines,
         )
     }
 
+    /**
+     * The left and right columns, or null to stack. The right one keeps its own width up to half the room, the
+     * left one gets the rest. A column that must wrap stacks them if it would be narrower than [MIN_COLUMN] em
+     * or split a word.
+     */
+    private fun columns(
+        text: StampText,
+        room: Float,
+    ): Pair<TextBlock, TextBlock>? {
+        if (text.end.isEmpty()) return null
+        val unit = text.sizePx
+        val inner = room - GAP * unit
+        val startW = text.start.maxOfOrNull(text::width) ?: 0f
+        val endW = text.end.maxOf(text::width)
+        val endCap = if (startW + endW <= inner || endW <= inner / 2) endW else maxOf(inner / 2, inner - startW)
+        val startCap = inner - endCap
+
+        fun fits(
+            lines: List<String>,
+            natural: Float,
+            cap: Float,
+        ) = natural <= cap || (cap >= MIN_COLUMN * unit && text.longestWord(lines) <= cap)
+        if (!fits(text.start, startW, startCap) || !fits(text.end, endW, endCap)) return null
+        return text.block(text.start, startCap) to text.block(text.end, endCap)
+    }
+
     private companion object {
         const val PADDING = 0.6f
+
+        /** Space between the columns, in em. */
+        const val GAP = 1.5f
+
+        /** The narrowest column worth keeping, in em: about a dozen characters. */
+        const val MIN_COLUMN = 6f
     }
 }
 
@@ -258,11 +304,15 @@ object StampLayout {
         data: StampData,
         measurer: TextMeasurer,
     ): StampGeometry? {
-        val raw = spec.fields.flatMap { it.lines(data) }
-        if (raw.isEmpty()) return null
-        val sizePx = max(StampStyle.MIN_TEXT_PX, spec.style.textSizeFraction * minOf(imageWidth, imageHeight))
-        val maxWidth = spec.placement.maxTextWidth(imageWidth, sizePx).coerceAtLeast(sizePx)
-        val block = TextBlock.build(raw, maxWidth, sizePx, measurer)
-        return spec.placement.place(imageWidth, imageHeight, block, sizePx)
+        val (where, what) = spec.fields.partition { it.describesPlace }
+        val text =
+            StampText(
+                start = what.flatMap { it.lines(data) },
+                end = where.flatMap { it.lines(data) },
+                sizePx = max(StampStyle.MIN_TEXT_PX, spec.style.textSizeFraction * minOf(imageWidth, imageHeight)),
+                m = measurer,
+            )
+        if (text.start.isEmpty() && text.end.isEmpty()) return null
+        return spec.placement.place(imageWidth, imageHeight, text)
     }
 }

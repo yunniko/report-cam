@@ -61,6 +61,7 @@ class PlaceField(
     private val preciseWithinM: Float,
 ) : StampField {
     override val id = "place"
+    override val describesPlace = true
 
     override fun lines(data: StampData): List<String> {
         val place = data[StampKeys.PLACE] ?: return emptyList()

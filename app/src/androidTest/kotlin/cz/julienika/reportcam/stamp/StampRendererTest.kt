@@ -65,4 +65,23 @@ class StampRendererTest {
         for (y in 900 until out.height) for (x in 0 until 600) if (Color.red(out.getPixel(x, y)) > 200) white++
         assertTrue("expected white text pixels in the band, found $white", white > 200)
     }
+
+    @Test
+    fun frameDrawsTheCoordinatesInTheRightColumn() {
+        // Owner, G-004: place and coordinates on the right of the band, the note on the left (D027).
+        val fix = GeoFix(50.08765, 14.42133, accuracyM = 5f, timeMillis = System.currentTimeMillis())
+        val where = data.with(StampKeys.LOCATION, LocationReading.Fix(fix))
+        val spec = StampSpec(listOf(TextField(), CoordinatesField(preciseWithinM = 50f)), FramePlacement(top = false))
+        val g = StampLayout.compute(1200, 900, spec, where, PaintTextMeasurer())!!
+        assertEquals("one line each side, one band line tall", g.lines[0].baseline, g.lines[1].baseline, 0.01f)
+        val out = StampRenderer.render(photo(), spec, where)
+
+        fun whiteIn(xs: IntRange): Int {
+            var n = 0
+            for (y in 900 until out.height) for (x in xs) if (Color.red(out.getPixel(x, y)) > 200) n++
+            return n
+        }
+        assertTrue("note on the left", whiteIn(0 until 300) > 100)
+        assertTrue("coordinates on the right", whiteIn(900 until 1200) > 100)
+    }
 }

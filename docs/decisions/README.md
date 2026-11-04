@@ -26,3 +26,4 @@
 - D024 — Each stamp scheme has its own palettes, and every pairing in it reads at 4.5:1 — active
 - D025 — A photo version is named by a hash of its look, and the note is part of the look — active
 - D026 — Compact text fields are plain text until tapped, and closing the keyboard ends the edit — active
+- D027 — The frame band has two columns, where on the right, and stacks when they do not fit — active

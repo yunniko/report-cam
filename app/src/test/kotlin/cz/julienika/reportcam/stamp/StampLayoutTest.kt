@@ -19,11 +19,15 @@ private object FixedMeasurer : TextMeasurer {
 
 private class LinesField(
     private vararg val text: String,
+    override val describesPlace: Boolean = false,
 ) : StampField {
     override val id = "fixed"
 
     override fun lines(data: StampData) = text.toList()
 }
+
+/** A where-field: the place name and coordinates stand-in. */
+private fun where(vararg text: String) = LinesField(*text, describesPlace = true)
 
 class StampLayoutTest {
     private val style = StampStyle(textSizeFraction = 0.05f) // 50 px on a 1000 px short edge
@@ -34,6 +38,23 @@ class StampLayoutTest {
         w: Int = 1000,
         h: Int = 1500,
     ) = StampLayout.compute(w, h, StampSpec(listOf(LinesField(*lines)), placement, style), StampData.EMPTY, FixedMeasurer)
+
+    /** A 1000 px wide photo (50 px text, 25 px per character): padding 30 px, so lines run from 30 to 970. */
+    private fun frame(
+        what: List<String>,
+        whereLines: List<String>,
+        placement: StampPlacement = FramePlacement(top = false),
+    ) = StampLayout.compute(
+        1000,
+        1500,
+        StampSpec(listOf(LinesField(*what.toTypedArray()), where(*whereLines.toTypedArray())), placement, style),
+        StampData.EMPTY,
+        FixedMeasurer,
+    )!!
+
+    private fun PlacedLine.right() = x + text.length * 25f
+
+    private fun PlacedLine.atLeft() = kotlin.math.abs(x - 30f) < 0.01f
 
     @Test
     fun nothingToSayMeansNoStamp() {
@@ -127,6 +148,68 @@ class StampLayoutTest {
     }
 
     @Test
+    fun frameShowsWhereOnTheRightTopAlignedWithTheNote() {
+        val g = frame(listOf("Site 4", "2026-11-04 08:06"), listOf("Prague", "50.1, 14.4 5 m"))
+        val (left, right) = g.lines.partition { it.atLeft() }
+        assertEquals(listOf("Site 4", "2026-11-04 08:06"), left.map { it.text })
+        assertEquals(listOf("Prague", "50.1, 14.4 5 m"), right.map { it.text })
+        right.forEach { assertEquals("right-aligned to the photo edge", 970f, it.right(), 0.01f) }
+        assertEquals("place above coordinates", right[0].baseline + 60f, right[1].baseline, 0.01f)
+        assertEquals("top-aligned", left[0].baseline, right[0].baseline, 0.01f)
+    }
+
+    @Test
+    fun theBandIsAsTallAsTheTallerColumn() {
+        val oneLeft = frame(listOf("Site 4"), listOf("Prague", "50.1, 14.4"))
+        val oneRight = frame(listOf("Site 4", "08:06"), listOf("Prague"))
+        val stacked = layout(FramePlacement(top = false), "a", "b")!!
+        // Two lines tall either way, the same band as two stacked lines.
+        assertEquals(stacked.outputHeight, oneLeft.outputHeight)
+        assertEquals(stacked.outputHeight, oneRight.outputHeight)
+    }
+
+    @Test
+    fun aLongNoteWrapsOnTheLeftWhileWhereStaysRight() {
+        val note = List(12) { "word" }.joinToString(" ") // 59 characters, 1475 px
+        val g = frame(listOf(note), listOf("Prague"))
+        val (left, right) = g.lines.partition { it.atLeft() }
+        assertTrue(left.size > 1)
+        assertEquals(note, left.joinToString(" ") { it.text })
+        assertEquals(listOf("Prague"), right.map { it.text })
+        assertTrue("the note keeps clear of the place", left.all { it.right() <= right[0].x - 75f + 0.01f })
+    }
+
+    @Test
+    fun columnsThatDoNotFitSideBySideStackAsBefore() {
+        // Both sides need over half the room and neither can be wrapped without splitting a word.
+        val g = frame(listOf("x".repeat(20)), listOf("y".repeat(20)))
+        assertEquals(listOf("x".repeat(20), "y".repeat(20)), g.lines.map { it.text })
+        assertTrue(g.lines.all { it.atLeft() })
+    }
+
+    @Test
+    fun withOnlyWhereToSayItStillSitsOnTheRight() {
+        val g = frame(emptyList(), listOf("Prague"))
+        assertEquals(970f, g.lines.single().right(), 0.01f)
+    }
+
+    @Test
+    fun aFrameTopBandGetsTheSameColumns() {
+        val g = frame(listOf("Site 4"), listOf("Prague"), FramePlacement(top = true))
+        assertEquals(970f, g.lines.single { it.text == "Prague" }.right(), 0.01f)
+        assertTrue(g.lines.all { it.baseline < g.imageTop })
+    }
+
+    @Test
+    fun overlayKeepsOneColumnWhatBeforeWhere() {
+        val spec =
+            StampSpec(listOf(where("Prague"), LinesField("Site 4")), OverlayPlacement(Corner.BOTTOM_START), style)
+        val g = StampLayout.compute(1000, 1500, spec, StampData.EMPTY, FixedMeasurer)!!
+        assertEquals(listOf("Site 4", "Prague"), g.lines.map { it.text })
+        assertEquals(g.lines[0].x, g.lines[1].x, 0.01f)
+    }
+
+    @Test
     fun aNewFieldAndANewPlacementNeedNoEngineChange() {
         // Stand-ins for future additions (an address field, a side band): plain classes, no engine edits.
         val address = LinesField("Main St 1, Prague")
@@ -134,26 +217,23 @@ class StampLayoutTest {
             object : StampPlacement {
                 override val id = "side"
 
-                override fun maxTextWidth(
-                    imageWidth: Int,
-                    unit: Float,
-                ) = 400f
-
                 override fun place(
                     imageWidth: Int,
                     imageHeight: Int,
-                    block: TextBlock,
-                    unit: Float,
-                ) = StampGeometry(
-                    imageWidth + 400,
-                    imageHeight,
-                    0,
-                    0,
-                    Box(imageWidth.toFloat(), 0f, imageWidth + 400f, imageHeight.toFloat()),
-                    0f,
-                    block.sizePx,
-                    block.lines.mapIndexed { i, t -> PlacedLine(t, imageWidth + 10f, (i + 1) * block.lineHeight) },
-                )
+                    text: StampText,
+                ): StampGeometry {
+                    val block = text.block(text.all, 400f)
+                    return StampGeometry(
+                        imageWidth + 400,
+                        imageHeight,
+                        0,
+                        0,
+                        Box(imageWidth.toFloat(), 0f, imageWidth + 400f, imageHeight.toFloat()),
+                        0f,
+                        block.sizePx,
+                        block.lines.mapIndexed { i, t -> PlacedLine(t, imageWidth + 10f, (i + 1) * block.lineHeight) },
+                    )
+                }
             }
         val spec = StampSpec(listOf(TextField(), address), sideBand, style)
         val data = StampData.EMPTY.with(StampKeys.USER_TEXT, "Crew B")

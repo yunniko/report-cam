@@ -6,7 +6,7 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 ## Current state
 
 G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
-hash-named versions) and M2 (compact text fields) are done, M3 and M4 are open.
+hash-named versions), M2 (compact text fields) and M3 (two-column frame) are done, M4 (release) is open.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -44,7 +44,10 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   before stamping. The preview shows the whole sensor frame and dims what the crop will cut away.
 - Stamp: settings text, date/time, coordinates with accuracy, approximate and age marks; overlay or frame. The
   frame borders all four edges: none / thin 2.5 % / medium 5 % (default) / thick 10 % of the short edge (D013),
-  text in the bottom or top band.
+  text in the bottom or top band. The band has two top-aligned columns (D027): note and date/time on the left,
+  place name above coordinates right-aligned on the right, the band as tall as the taller one; a column too narrow
+  to wrap stacks all lines on the left. Seen on emulator photos (frame below dark, frame above light, the place
+  wrapping to two lines) and in the colour dialog's frame preview. Overlays keep one column.
 - Place name (D011): off by default; full address, street and number, street and city, or city, above the
   coordinates and in XMP and the message. Looked up once through Android's Geocoder just before stamping
   (650 ms on the emulator, Google answering); offline it fails in about 0.3 s and the stamp keeps coordinates only.
@@ -63,9 +66,9 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 146/146 unit, 39/39 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 153/153 unit, 40/40 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
-  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change). The emulator camera currently runs at about
+  switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Release build 0.3.1 (code 7): signed with the D007 key, 1.60 MB, sent to the Owner. Settings, the colour dialog
   and the review screen with brand-coloured quick buttons open in it (custom Preference classes survive R8).
@@ -93,7 +96,8 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 - `location/`: `LocationTracker` (platform LocationManager, started/stopped with the activity) and the pure
   `FixPolicy` and `LocationMarker` rules (D005). `LocationPermissions` decides prompt vs. settings.
 - `stamp/` is the extensible stamp (D004). Only `StampRenderer.kt` touches Android graphics; `StampLayout`
-  places the photo, border and band.
+  places the photo, border and band. Fields marked `describesPlace` reach a placement as the end group of its
+  `StampText`; the frame puts them in its right column (D027).
 - `photo/PhotoPipeline` works in two steps off the main thread: `decode` (rotate, crop) after capture, `finish`
   (stamp, encode into `cacheDir/shared/`) once the stamp data is final;
   `ExifWriter` then adds `PhotoMetadata` (D006); `GallerySaver` copies to MediaStore. `review/PhotoVersions` draws
@@ -127,7 +131,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 ## Next steps and open questions
 
-- G-004 M3: the frame stamp in two columns, place name and coordinates on the right. M4: release 0.4.0 (code 8).
+- G-004 M4: release 0.4.0 (code 8): full suites, release APK to the Owner, push.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

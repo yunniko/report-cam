@@ -12,6 +12,9 @@ import kotlin.math.roundToInt
 interface StampField {
     val id: String
 
+    /** True for a field saying where the photo was: a two-column stamp puts these on the end side (Owner, G-004). */
+    val describesPlace: Boolean get() = false
+
     fun lines(data: StampData): List<String>
 }
 
@@ -72,6 +75,7 @@ class CoordinatesField(
     private val preciseWithinM: Float,
 ) : StampField {
     override val id = "coordinates"
+    override val describesPlace = true
 
     override fun lines(data: StampData): List<String> =
         if (hiddenWhen(data)) emptyList() else describeReading(data)

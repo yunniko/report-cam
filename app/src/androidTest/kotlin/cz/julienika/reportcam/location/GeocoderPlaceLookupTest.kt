@@ -13,6 +13,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Locale
+import kotlin.random.Random
 
 /**
  * The real geocoder through the device's service. Needs the network: without it the lookups are skipped,
@@ -38,8 +39,11 @@ class GeocoderPlaceLookupTest {
 
     @Test
     fun theTimeoutGivesNoPlaceInsteadOfWaiting() {
+        // A point never asked before: the platform geocoder answers a repeated question at once, inside even
+        // a 1 ms timeout, so a fixed point fails this after any run that looked it up.
+        val fresh = GeoFix(49.5 + Random.nextDouble(), 14.0 + 3 * Random.nextDouble(), 5f, System.currentTimeMillis())
         val started = System.currentTimeMillis()
-        val place = runBlocking { GeocoderPlaceLookup(context, timeoutMs = 1).lookup(oldTownSquare) }
+        val place = runBlocking { GeocoderPlaceLookup(context, timeoutMs = 1).lookup(fresh) }
         assertNull(place)
         assertTrue("returned in time", System.currentTimeMillis() - started < 1_000)
     }
