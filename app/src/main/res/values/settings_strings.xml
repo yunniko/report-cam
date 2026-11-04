@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="pref_cat_stamp">Stamp</string>
-    <string name="pref_stamp_text">Text</string>
+    <string name="pref_stamp_text">Note</string>
     <string name="pref_show_datetime">Date and time</string>
     <string name="pref_datetime_pattern">Date format</string>
 
@@ -52,7 +52,7 @@
     <string name="pref_default_ev_summary">The camera opens at it; tap the EV label to return to it.</string>
     <string name="pref_save_gallery">Save to gallery when sent</string>
     <string name="pref_save_gallery_summary">Sending a photo also keeps a copy in Pictures/Report Cam. The Save button on the review screen saves without sending. A photo is never saved twice.</string>
-    <string name="pref_caption">Add stamp text as caption</string>
+    <string name="pref_caption">Send the stamp text as a message</string>
     <string name="pref_quick_messengers">Quick send buttons</string>
     <string name="pref_quick_messengers_summary">Up to three messengers get their own button on the review screen. Only installed ones show.</string>
     <string name="pref_quick_side">Single quick button</string>
@@ -88,7 +88,7 @@
         <item>whatsapp</item>
         <item>telegram</item>
     </string-array>
-    <string name="pref_caption_summary">The stamp text goes with the photo as a message, so it stays readable even though messengers strip metadata from photos.</string>
+    <string name="pref_caption_summary">Turns the Message switch on in review: the stamp text goes with the photo, so it stays readable even though messengers strip metadata from photos.</string>
 
     <string-array name="datetime_pattern_labels">
         <item>2026-11-03 14:05:09</item>

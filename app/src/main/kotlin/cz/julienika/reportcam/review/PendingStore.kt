@@ -124,7 +124,7 @@ class PendingStore(
         clearWaiting()
     }
 
-    /** The same photo stamped again (the other scheme): its new file and state; the source stays. */
+    /** The same photo stamped again (another scheme or note): its new file and state; the source stays. */
     @Synchronized
     fun replaceStamped(
         file: File,
@@ -136,7 +136,7 @@ class PendingStore(
         writeReady(m)
     }
 
-    /** New caption, switch or saved flag for the stamped photo already kept; nothing when there is none. */
+    /** New texts, switches or saved versions for the stamped photo already kept; nothing when there is none. */
     @Synchronized
     fun updateReady(
         m: ReadyMeta,
@@ -180,7 +180,7 @@ class PendingStore(
     private fun writeReady(m: ReadyMeta) {
         val tmp = File(dir, "ready.tmp")
         tmp.outputStream().use { m.toProperties().store(it, null) }
-        // Replaces the old state in one step, so a stop mid-write keeps the previous caption and flags.
+        // Replaces the old state in one step, so a stop mid-write keeps the previous texts and flags.
         Files.move(tmp.toPath(), ready.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
     }
 

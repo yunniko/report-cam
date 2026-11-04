@@ -91,10 +91,12 @@ class PendingStoreTest {
 
     private val ready =
         ReadyMeta(
-            fileName = "report_20261103_133847_123.jpg",
-            caption = "Stavba č. 4 – kontrola\nupraveno",
-            captionOn = false,
-            saved = true,
+            fileName = "report_20261103_133847_123_0a1b2c3d.jpg",
+            message = "Stavba č. 4 – kontrola\nupraveno",
+            messageOn = false,
+            note = "Stavba č. 4 – kontrola",
+            noteOn = true,
+            savedFiles = setOf("report_20261103_133847_123_0a1b2c3d.jpg", "report_20261103_133847_123_99ff0011.jpg"),
             scheme = SchemeId.LIGHT,
             rotationDegrees = 90,
             outputLongEdge = 1280,
@@ -107,7 +109,7 @@ class PendingStoreTest {
     private fun stampedFile() = tmp.newFile().apply { writeBytes(bytes) }
 
     @Test
-    fun aStampedPhotoComesBackWithItsCaptionAndFlags() {
+    fun aStampedPhotoComesBackWithItsTextsAndSavedVersions() {
         store().saveReady(stampedFile(), source, ready)
         val kept = store().loadReady()!!
         assertArrayEquals(bytes, kept.stamped.readBytes())
@@ -132,8 +134,9 @@ class PendingStoreTest {
         s.updateReady(ready)
         assertFalse("no photo, nothing to update", s.exists())
         s.saveReady(stampedFile(), source, ready)
-        s.updateReady(ready.copy(caption = "jiný text", captionOn = true, saved = false))
-        assertEquals(ready.copy(caption = "jiný text", captionOn = true, saved = false), store().loadReady()!!.meta)
+        val edited = ready.copy(message = "jiný text", messageOn = true, note = "", noteOn = false, savedFiles = emptySet())
+        s.updateReady(edited)
+        assertEquals(edited, store().loadReady()!!.meta)
     }
 
     @Test
@@ -172,12 +175,33 @@ class PendingStoreTest {
         assertFalse("nothing kept, nothing to replace", s.exists())
         s.saveReady(stampedFile(), source, ready)
         val redrawn = tmp.newFile().apply { writeBytes(byteArrayOf(9, 9, 9)) }
-        s.replaceStamped(redrawn, ready.copy(fileName = "report_20261103_133847_123_dark.jpg", scheme = SchemeId.DARK, saved = false))
+        s.replaceStamped(redrawn, ready.copy(fileName = "report_20261103_133847_123_77aa55cc.jpg", scheme = SchemeId.DARK))
         val kept = store().loadReady()!!
         assertArrayEquals(byteArrayOf(9, 9, 9), kept.stamped.readBytes())
         assertArrayEquals(source.bytes, kept.source.bytes)
         assertEquals(SchemeId.DARK, kept.meta.scheme)
-        assertFalse(kept.meta.saved)
+        assertFalse("this version is not among the saved ones", kept.meta.saved)
+    }
+
+    @Test
+    fun anEntryFrom03ComesBackWithTheNoteSwitchedOnAndItsSavedFlag() {
+        val dir = File(tmp.root, "pending").apply { mkdirs() }
+        File(dir, "stamped.jpg").writeBytes(bytes)
+        File(dir, "source.jpg").writeBytes(source.bytes)
+        val old =
+            ready.toProperties().apply {
+                remove("note")
+                remove("note_on")
+                remove("saved_files")
+                setProperty("saved", "true")
+            }
+        File(dir, "ready.properties").outputStream().use { old.store(it, null) }
+        val m = store().loadReady()!!.meta
+        assertEquals("the note is what was stamped", facts.userText, m.note)
+        assertTrue(m.noteOn)
+        assertEquals(setOf(ready.fileName), m.savedFiles)
+        assertTrue(m.saved)
+        assertEquals(ready.message, m.message)
     }
 
     @Test

@@ -20,7 +20,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import cz.julienika.reportcam.helpers.canSend
+import cz.julienika.reportcam.helpers.keptState
+import cz.julienika.reportcam.helpers.lastSend
 import cz.julienika.reportcam.helpers.pendingDir
+import cz.julienika.reportcam.helpers.shootAndStamp
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
 import cz.julienika.reportcam.settings.Keys
@@ -38,8 +41,9 @@ import java.io.File
 import java.util.Properties
 
 /**
- * The stamped-photo half of the review screen (G-003 M1): the editable caption and its switch, the
- * one-gallery-copy rule, and the unsent photo kept across a restart; the dark/light restamp (G-003 M2).
+ * The stamped-photo half of the review screen (G-003 M1): the editable message and its switch, the
+ * one-gallery-copy rule, and the unsent photo kept across a restart; the dark/light redraw (G-003 M2), with
+ * a version found again when its look comes back (G-004, D025). The note row is in [ReviewNoteTest].
  */
 @RunWith(AndroidJUnit4::class)
 class ReviewActionsTest {
@@ -76,20 +80,9 @@ class ReviewActionsTest {
         }
     }
 
-    private fun ActivityScenario<CameraActivity>.shootAndStamp() {
-        waitFor("live preview") { it.view(R.id.shutter).isEnabled }
-        onActivity { it.view(R.id.shutter).performClick() }
-        waitFor("stamped review") { it.canSend() }
-        waitFor("stamped copy kept on disk") { File(pendingDir, "ready.properties").isFile }
-    }
+    private fun ActivityScenario<CameraActivity>.shootAndStamp() = shootAndStamp(pendingDir)
 
-    private fun lastSend(): Intent {
-        val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
-        @Suppress("DEPRECATION")
-        return chooser.getParcelableExtra(Intent.EXTRA_INTENT)!!
-    }
-
-    private fun keptState(): Properties = File(pendingDir, "ready.properties").inputStream().use { Properties().apply { load(it) } }
+    private fun keptState(): Properties = keptState(pendingDir)
 
     private fun keptFileName(): String = keptState().getProperty("file")!!.also { savedNames += it }
 
@@ -138,13 +131,13 @@ class ReviewActionsTest {
     }
 
     @Test
-    fun theEditedCaptionIsWhatGetsSent() {
+    fun theEditedMessageIsWhatGetsSent() {
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.shootAndStamp()
             s.onActivity {
-                val text = it.view(R.id.caption_text) as EditText
+                val text = it.view(R.id.message_text) as EditText
                 assertTrue("starts as the stamp text", text.text.startsWith("Review test\n"))
-                assertTrue((it.view(R.id.caption_switch) as Switch).isChecked)
+                assertTrue((it.view(R.id.message_switch) as Switch).isChecked)
                 text.setText("Edited on site")
                 it.view(R.id.share_other).performClick()
             }
@@ -154,18 +147,18 @@ class ReviewActionsTest {
 
     @Test
     fun theSwitchStartsAtTheSettingAndOffSendsThePhotoOnly() {
-        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(Keys.CAPTION, false).commit()
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(Keys.MESSAGE, false).commit()
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.shootAndStamp()
             s.onActivity {
-                val switch = it.view(R.id.caption_switch) as Switch
+                val switch = it.view(R.id.message_switch) as Switch
                 assertFalse(switch.isChecked)
-                assertFalse("text is greyed out while off", it.view(R.id.caption_text).isEnabled)
+                assertFalse("only the name and switch while off", it.view(R.id.message_text).isShown)
                 it.view(R.id.share_other).performClick()
             }
             assertFalse(lastSend().hasExtra(Intent.EXTRA_TEXT))
             s.onActivity {
-                (it.view(R.id.caption_switch) as Switch).isChecked = true
+                (it.view(R.id.message_switch) as Switch).isChecked = true
                 it.view(R.id.share_other).performClick()
             }
             assertTrue(lastSend().getStringExtra(Intent.EXTRA_TEXT)!!.startsWith("Review test\n"))
@@ -226,15 +219,15 @@ class ReviewActionsTest {
     }
 
     @Test
-    fun anUnsentPhotoComesBackWithItsCaptionSwitchAndSavedFlag() {
+    fun anUnsentPhotoComesBackWithItsTextsSwitchesAndSavedFlag() {
         PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(Keys.SAVE_GALLERY, true).commit()
         var name = ""
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.shootAndStamp()
             name = keptFileName()
             s.onActivity {
-                (it.view(R.id.caption_text) as EditText).setText("Kept across a restart")
-                (it.view(R.id.caption_switch) as Switch).isChecked = false
+                (it.view(R.id.message_text) as EditText).setText("Kept across a restart")
+                (it.view(R.id.message_switch) as Switch).isChecked = false
                 it.view(R.id.save_gallery).performClick()
             }
             s.waitFor("saved") { !it.view(R.id.save_gallery).isEnabled }
@@ -246,10 +239,10 @@ class ReviewActionsTest {
             s.waitFor("the stamped photo back in review") { it.canSend() }
             s.onActivity {
                 assertEquals("the camera stays closed", View.GONE, it.view(R.id.camera_controls).visibility)
-                assertEquals("Kept across a restart", (it.view(R.id.caption_text) as EditText).text.toString())
-                assertFalse((it.view(R.id.caption_switch) as Switch).isChecked)
+                assertEquals("Kept across a restart", (it.view(R.id.message_text) as EditText).text.toString())
+                assertFalse((it.view(R.id.message_switch) as Switch).isChecked)
                 assertFalse("still saved", it.view(R.id.save_gallery).isEnabled)
-                (it.view(R.id.caption_switch) as Switch).isChecked = true
+                (it.view(R.id.message_switch) as Switch).isChecked = true
                 it.view(R.id.share_other).performClick()
             }
             val send = lastSend()
@@ -278,12 +271,17 @@ class ReviewActionsTest {
         return sum / (b.width * b.height)
     }
 
+    /** Taps a scheme button and waits for that scheme's version; returns its file name. */
     private fun ActivityScenario<CameraActivity>.restampTo(
         button: Int,
-        suffix: String,
-    ) {
+        scheme: String,
+    ): String {
+        val before = keptState().getProperty("file")
         onActivity { it.view(button).performClick() }
-        waitFor("restamped as $suffix") { keptState().getProperty("file").endsWith("_$suffix.jpg") && it.canSend() }
+        waitFor("redrawn $scheme") {
+            keptState().let { k -> k.getProperty("scheme") == scheme && k.getProperty("file") != before } && it.canSend()
+        }
+        return keptState().getProperty("file")
     }
 
     @Test
@@ -298,10 +296,9 @@ class ReviewActionsTest {
             s.waitFor("saved") { !it.view(R.id.save_gallery).isEnabled }
             assertCopies(1, dark)
 
-            s.restampTo(R.id.scheme_light, "light")
-            val light = keptFileName()
+            val light = s.restampTo(R.id.scheme_light, "light").also { savedNames += it }
             assertEquals("light", keptState().getProperty("scheme"))
-            assertEquals("false", keptState().getProperty("saved"))
+            assertFalse("not among the saved versions", keptState().getProperty("saved_files").contains(light))
             assertTrue("a lighter box", brightness(stampedBytes()) > brightness(darkBytes) + 1.0)
             s.onActivity {
                 assertTrue("the new version is not saved yet", it.view(R.id.save_gallery).isEnabled)
@@ -319,19 +316,20 @@ class ReviewActionsTest {
 
     @Test
     fun aRestoredPhotoKeepsItsSchemeAndCanBeRestamped() {
+        var firstDark = ""
+        var firstLight = ""
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.shootAndStamp()
-            s.restampTo(R.id.scheme_light, "light")
+            firstDark = keptState().getProperty("file")
+            firstLight = s.restampTo(R.id.scheme_light, "light")
         }
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("the stamped photo back in review") { it.canSend() }
             assertEquals("light", keptState().getProperty("scheme"))
             val lightBytes = stampedBytes()
-            s.restampTo(R.id.scheme_dark, "dark")
+            assertEquals("back to dark finds the first version", firstDark, s.restampTo(R.id.scheme_dark, "dark"))
             assertTrue("a darker box", brightness(stampedBytes()) < brightness(lightBytes) - 1.0)
-            val dark = keptFileName()
-            s.restampTo(R.id.scheme_light, "light-2")
-            assertTrue("the first light file is left as sent", File(File(context.cacheDir, "shared"), dark.replace("_dark", "_light")).isFile)
+            assertEquals("and light again the second", firstLight, s.restampTo(R.id.scheme_light, "light"))
         }
     }
 }

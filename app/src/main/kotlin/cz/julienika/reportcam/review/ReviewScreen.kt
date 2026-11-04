@@ -1,37 +1,25 @@
 package cz.julienika.reportcam.review
 
 import android.content.ActivityNotFoundException
-import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.drawable.GradientDrawable
 import android.os.SystemClock
 import android.util.Log
-import android.widget.Button
-import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import cz.julienika.reportcam.R
-import cz.julienika.reportcam.camera.CapturedJpeg
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
 import cz.julienika.reportcam.location.LocationStatus
 import cz.julienika.reportcam.location.LocationTracker
 import cz.julienika.reportcam.location.PlaceLookup
-import cz.julienika.reportcam.photo.AspectRatio
-import cz.julienika.reportcam.photo.ExifWriter
 import cz.julienika.reportcam.photo.GallerySaver
 import cz.julienika.reportcam.photo.PhotoDecoder
-import cz.julienika.reportcam.photo.PhotoMetadata
 import cz.julienika.reportcam.photo.PhotoPipeline
-import cz.julienika.reportcam.photo.ProcessedPhoto
 import cz.julienika.reportcam.settings.AppSettings
 import cz.julienika.reportcam.share.Messenger
-import cz.julienika.reportcam.share.icon
 import cz.julienika.reportcam.share.Sharing
-import cz.julienika.reportcam.stamp.LocationReading
 import cz.julienika.reportcam.stamp.SchemeId
 import cz.julienika.reportcam.stamp.StampData
 import cz.julienika.reportcam.stamp.StampKeys
@@ -39,14 +27,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.time.ZonedDateTime
-
-/** The camera JPEG a photo is drawn from, and the shape and size it was taken at: enough to draw it again. */
-class PhotoSource(
-    val jpeg: CapturedJpeg,
-    val longEdge: Int,
-    val aspect: AspectRatio,
-)
 
 /**
  * The review half of the camera screen. A photo arrives either ready to stamp, or waiting for a precise
@@ -66,35 +46,7 @@ class ReviewScreen(
     private val storageAccess: (() -> Unit) -> Unit,
     private val onLeave: () -> Unit,
 ) {
-    private sealed interface State {
-        data object Idle : State
-
-        /** A waiting photo from an earlier run is being read back from the store. */
-        data object Restoring : State
-
-        class Waiting(
-            val source: PhotoSource,
-            val base: Bitmap,
-            val data: StampData,
-            val settings: AppSettings,
-        ) : State
-
-        data object Stamping : State
-
-        class Ready(
-            val photo: ProcessedPhoto,
-            /** The settings this version was stamped with; its scheme is the one the switch shows. */
-            val settings: AppSettings,
-            /** This version is in the gallery: neither Save nor sending adds another copy (Owner, 2026-11-03). */
-            var saved: Boolean,
-            val source: PhotoSource,
-            val facts: StampFacts,
-        ) : State {
-            val captureTime: ZonedDateTime get() = facts.captureTime
-        }
-    }
-
-    private var state: State = State.Idle
+    private var state: ReviewState = ReviewState.Idle
 
     /**
      * Bumped on every new photo and on leaving, so a stamp that finishes for an abandoned photo is dropped.
@@ -107,7 +59,7 @@ class ReviewScreen(
     var sentSinceCapture = false
         private set
 
-    val isActive: Boolean get() = state != State.Idle
+    val isActive: Boolean get() = state != ReviewState.Idle
 
     /**
      * The settings as they are now, for what only presents the photo: the quick buttons and the theme. Stamping
@@ -115,17 +67,23 @@ class ReviewScreen(
      */
     private var current: AppSettings? = null
 
+    /** A scheme tapped, and what to do once the photo is drawn: kept while a redraw runs ([redraw]). */
+    private var wantedScheme: SchemeId? = null
+    private val afterRedraw = mutableListOf<(ReviewState.Ready) -> Unit>()
+
+    private val versions = PhotoVersions(sharedDir, places)
+    private val texts = ReviewTexts(ui) { redraw() }
+    private val schemes = SchemeButtons(ui) { redraw(scheme = it) }
+    private val quick =
+        QuickButtons(ui, activity.resources.displayMetrics.density, { installed(it) != null }) { share(it) }
+
     init {
         ui.retake.setOnClickListener { leave() }
         ui.useCurrent.setOnClickListener { useCurrent() }
         ui.shareOther.setOnClickListener { share(null) }
         ui.saveGallery.setOnClickListener {
-            val ready = state as? State.Ready ?: return@setOnClickListener
-            storageAccess { if (state === ready) saveToGallery(ready) }
+            whenDrawn { ready -> storageAccess { if (state === ready) saveToGallery(ready) } }
         }
-        ui.captionSwitch.setOnCheckedChangeListener { _, on -> ui.captionText.isEnabled = on }
-        ui.schemeDark.setOnClickListener { restamp(SchemeId.DARK) }
-        ui.schemeLight.setOnClickListener { restamp(SchemeId.LIGHT) }
     }
 
     /** Stamp [base], decoded from [source], now with [data] as it is. */
@@ -147,26 +105,13 @@ class ReviewScreen(
         settings: AppSettings,
     ) {
         enter(settings)
-        state = State.Waiting(source, base, data, settings)
+        state = ReviewState.Waiting(source, base, data, settings)
         // A bitmap of its own for the screen: the stamp step draws on [base] and may recycle it.
         val shown = PhotoDecoder.displayCopy(base, displayEdge())
         ui.reviewImage.setImageBitmap(if (shown === base) base.copy(Bitmap.Config.ARGB_8888, false) else shown)
         ui.pendingRow.isVisible = true
         ui.useCurrent.isVisible = true
         onLocation(tracker.status)
-    }
-
-    /** The place name of the fix being stamped, and of no other (D011); unchanged when off or not found. */
-    private suspend fun withPlace(
-        data: StampData,
-        s: AppSettings,
-    ): StampData {
-        if (s.placeFormat == null) return data
-        val fix = (data[StampKeys.LOCATION] as? LocationReading.Fix)?.fix ?: return data
-        val started = SystemClock.elapsedRealtime()
-        val place = places.lookup(fix)
-        Log.i(TAG, "place ${if (place == null) "not found" else "found"} in ${SystemClock.elapsedRealtime() - started}ms")
-        return data.with(StampKeys.PLACE, place)
     }
 
     /** True when a photo from an earlier run is still on disk; [restore] brings it back. */
@@ -178,7 +123,7 @@ class ReviewScreen(
      */
     fun restore(settings: AppSettings) {
         enter(settings)
-        state = State.Restoring
+        state = ReviewState.Restoring
         ui.busy.isVisible = true
         val token = generation
         val displayEdge = displayEdge()
@@ -186,7 +131,7 @@ class ReviewScreen(
             val stamped =
                 withContext(Dispatchers.IO) {
                     try {
-                        store.loadReady()?.let { kept -> restoreStamped(kept.stamped, kept.meta, displayEdge) to kept }
+                        store.loadReady()?.let { kept -> versions.restore(kept.stamped, kept.meta.fileName, displayEdge) to kept }
                     } catch (e: Exception) {
                         Log.e(TAG, "restoring the stamped photo failed", e)
                         store.clear()
@@ -200,7 +145,10 @@ class ReviewScreen(
                 val m = kept.meta
                 Log.i(TAG, "restored a stamped photo, taken ${m.captureTime}")
                 val source = PhotoSource(kept.source, m.outputLongEdge, m.aspect)
-                showReady(State.Ready(photo, settings.withScheme(m.scheme), m.saved, source, m.facts), m.caption, m.captionOn)
+                texts.show(m.note, m.noteOn, m.message, m.messageOn)
+                showReady(ReviewState.Ready(photo, settings.withScheme(m.scheme), m.savedFiles.toMutableSet(), source, m.facts))
+                // A note left mid-edit when the app was stopped is drawn now.
+                redraw()
                 return@launch
             }
             val loaded =
@@ -233,7 +181,7 @@ class ReviewScreen(
 
     /** Every tracker update while the screen is up. */
     fun onLocation(status: LocationStatus) {
-        val waiting = state as? State.Waiting ?: return
+        val waiting = state as? ReviewState.Waiting ?: return
         val now = System.currentTimeMillis()
         if (PendingLocation.settled(status, now, waiting.settings.preciseWithinM)) {
             stamp(waiting.source, waiting.base, waiting.data.with(StampKeys.LOCATION, PendingLocation.current(status)), waiting.settings)
@@ -247,7 +195,7 @@ class ReviewScreen(
     }
 
     private fun useCurrent() {
-        val waiting = state as? State.Waiting ?: return
+        val waiting = state as? ReviewState.Waiting ?: return
         stamp(waiting.source, waiting.base, waiting.data.with(StampKeys.LOCATION, PendingLocation.current(tracker.status)), waiting.settings)
     }
 
@@ -257,7 +205,7 @@ class ReviewScreen(
         found: StampData,
         s: AppSettings,
     ) {
-        state = State.Stamping
+        state = ReviewState.Stamping
         val token = generation
         ui.pendingRow.isVisible = false
         ui.useCurrent.isVisible = false
@@ -265,15 +213,11 @@ class ReviewScreen(
         val displayEdge = displayEdge()
         activity.lifecycleScope.launch {
             val started = SystemClock.elapsedRealtime()
-            val data = withPlace(found, s)
+            val data = versions.withPlace(found, s)
             if (token != generation) return@launch // the user retook or left during the lookup
             val photo =
                 try {
-                    withContext(Dispatchers.Default) {
-                        PhotoPipeline(sharedDir).finish(base, s.stampSpec, data, displayEdge).also {
-                            ExifWriter.write(it.file, PhotoMetadata.of(s.stampSpec, data, s.preciseWithinM))
-                        }
-                    }
+                    withContext(Dispatchers.Default) { versions.draw(source, s, data, displayEdge, base) }
                 } catch (e: Exception) {
                     Log.e(TAG, "processing failed", e)
                     null
@@ -286,11 +230,11 @@ class ReviewScreen(
                 return@launch
             }
             Log.i(TAG, "photo ${photo.width}x${photo.height} stamped in ${SystemClock.elapsedRealtime() - started}ms")
-            val caption = PhotoMetadata.of(s.stampSpec, data, s.preciseWithinM).stampText
-            val ready = State.Ready(photo, s, saved = false, source, StampFacts.of(data))
+            val ready = ReviewState.Ready(photo, s, mutableSetOf(), source, StampFacts.of(data))
+            texts.show(data[StampKeys.USER_TEXT].orEmpty(), noteOn = true, ready.stampText, s.message)
             // The stamped copy replaces the waiting one on disk before anything can be sent (D015), and
             // not at all if the user left meanwhile.
-            val meta = readyMeta(ready, caption, s.caption)
+            val meta = readyMeta(ready)
             withContext(Dispatchers.IO) {
                 try {
                     store.saveReady(photo.file, source.jpeg, meta) { token == generation }
@@ -299,151 +243,131 @@ class ReviewScreen(
                 }
             }
             if (token != generation) return@launch
-            showReady(ready, caption, s.caption)
+            showReady(ready)
         }
     }
 
-    private fun showReady(
-        ready: State.Ready,
-        caption: String,
-        captionOn: Boolean,
-    ) {
+    /** Shows [ready] with its controls; the text rows are filled separately, so a redraw never overwrites typing. */
+    private fun showReady(ready: ReviewState.Ready) {
         state = ready
         ui.pendingRow.isVisible = false
         ui.useCurrent.isVisible = false
         ui.reviewImage.setImageBitmap(ready.photo.display)
-        ui.captionText.setText(caption)
-        ui.captionSwitch.isChecked = captionOn
-        ui.captionText.isEnabled = captionOn
         showSaved(ready.saved)
-        showScheme(ready.settings)
-        setShareVisible(true)
+        schemes.show(ready.settings)
+        if (!ui.shareRow.isVisible) setShareVisible(true)
     }
 
     /**
-     * Draws the photo under review again with scheme [id], caption and edits kept. The new version counts
-     * as unsaved, so Save adds one copy of it and the old copy stays (Owner, G-003; D017). It gets its own
-     * file name, so a version already handed to a messenger is never overwritten.
+     * Draws the photo under review again if its look changed: the scheme tapped (G-003) or the note finished
+     * (G-004). The new version is drawn from the kept camera JPEG (D019), or is the version drawn earlier with
+     * the same look (D025). [then] runs on the current version once everything asked for so far is drawn; a
+     * call during a redraw is picked up when that one ends. The message follows the note unless edited.
      */
-    private fun restamp(id: SchemeId) {
-        val ready = state as? State.Ready ?: return
-        if (ready.settings.scheme == id) return
-        val s = ready.settings.withScheme(id)
-        val caption = ui.captionText.text.toString()
-        val captionOn = ui.captionSwitch.isChecked
-        state = State.Stamping
+    private fun redraw(
+        scheme: SchemeId? = null,
+        then: ((ReviewState.Ready) -> Unit)? = null,
+    ) {
+        if (scheme != null) wantedScheme = scheme
+        if (then != null) afterRedraw += then
+        val ready = state as? ReviewState.Ready ?: return
+        val s = ready.settings.withScheme(wantedScheme ?: ready.settings.scheme)
+        val facts = ready.facts.copy(userText = texts.stampedNote)
+        wantedScheme = null
+        if (s.scheme == ready.settings.scheme && facts == ready.facts) {
+            val actions = afterRedraw.toList()
+            afterRedraw.clear()
+            actions.forEach { if (state === ready) it(ready) }
+            return
+        }
+        state = ReviewState.Stamping
         val token = generation
         ui.busy.isVisible = true
         val displayEdge = displayEdge()
         activity.lifecycleScope.launch {
-            val data = ready.facts.toStampData()
+            val data = facts.toStampData()
             val photo =
                 try {
-                    withContext(Dispatchers.Default) {
-                        val pipeline = PhotoPipeline(sharedDir)
-                        val base = pipeline.decode(ready.source.jpeg, ready.source.longEdge, ready.source.aspect)
-                        pipeline.finish(base, s.stampSpec, data, displayEdge, nameSuffix = "_${id.id}").also {
-                            ExifWriter.write(it.file, PhotoMetadata.of(s.stampSpec, data, s.preciseWithinM))
-                        }
-                    }
+                    withContext(Dispatchers.Default) { versions.draw(ready.source, s, data, displayEdge) }
                 } catch (e: Exception) {
-                    Log.e(TAG, "restamping failed", e)
+                    Log.e(TAG, "redrawing failed", e)
                     null
                 }
             if (token != generation) return@launch
             ui.busy.isVisible = false
             if (photo == null) {
                 toast(R.string.process_failed)
-                showReady(ready, caption, captionOn)
+                dropPending()
+                showReady(ready)
                 return@launch
             }
-            val next = State.Ready(photo, s, saved = false, ready.source, ready.facts)
-            val meta = readyMeta(next, caption, captionOn)
+            val next = ReviewState.Ready(photo, s, ready.savedFiles, ready.source, facts)
+            texts.follow(ready.stampText, next.stampText)
+            val meta = readyMeta(next)
             withContext(Dispatchers.IO) {
                 try {
                     store.replaceStamped(photo.file, meta) { token == generation }
                 } catch (e: Exception) {
-                    Log.e(TAG, "could not keep the restamped photo on disk", e)
+                    Log.e(TAG, "could not keep the redrawn photo on disk", e)
                 }
             }
             if (token != generation) return@launch
-            Log.i(TAG, "restamped with the ${id.id} scheme")
-            showReady(next, caption, captionOn)
+            Log.i(TAG, "redrawn as ${photo.file.name}")
+            showReady(next)
+            redraw() // a change made meanwhile, or the action waiting for this version
         }
     }
 
-    /** Each scheme button in its own colours; the one in use is outlined in the accent colour. */
-    private fun showScheme(s: AppSettings) {
-        val density = activity.resources.displayMetrics.density
-        for ((button, id) in listOf(ui.schemeDark to SchemeId.DARK, ui.schemeLight to SchemeId.LIGHT)) {
-            val scheme = s.schemes.getValue(id)
-            val chosen = id == s.scheme
-            button.background =
-                GradientDrawable().apply {
-                    cornerRadius = SCHEME_CORNER_DP * density
-                    setColor(scheme.background)
-                    setStroke(((if (chosen) 3 else 1) * density).toInt(), if (chosen) activity.getColor(R.color.accent) else GREY)
-                }
-            button.setTextColor(scheme.text)
-            button.isSelected = chosen
-        }
+    /** Forgets a scheme asked for and the action waiting for a redraw: the photo they were for is gone. */
+    private fun dropPending() {
+        wantedScheme = null
+        afterRedraw.clear()
     }
 
-    /** The shared copy is written back from the kept one, so the restored file is the one a messenger gets. */
-    private fun restoreStamped(
-        kept: File,
-        m: ReadyMeta,
-        displayEdge: Int,
-    ): ProcessedPhoto {
-        val shared = File(sharedDir, m.fileName)
-        sharedDir.mkdirs()
-        kept.copyTo(shared, overwrite = true)
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(shared.path, bounds)
-        check(bounds.outWidth > 0) { "kept photo does not decode" }
-        var sample = 1
-        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= displayEdge) sample *= 2
-        val decoded =
-            BitmapFactory.decodeFile(shared.path, BitmapFactory.Options().apply { inSampleSize = sample })
-                ?: error("kept photo does not decode")
-        return ProcessedPhoto(shared, bounds.outWidth, bounds.outHeight, PhotoDecoder.displayCopy(decoded, displayEdge))
+    /** Finishes a note edit in progress and waits for its version, so what is sent or saved shows the note. */
+    private fun whenDrawn(action: (ReviewState.Ready) -> Unit) {
+        if (state !is ReviewState.Ready && state !== ReviewState.Stamping) return
+        texts.finishEditing()
+        redraw(then = action)
     }
 
-    private fun readyMeta(
-        ready: State.Ready,
-        caption: String = ui.captionText.text.toString(),
-        captionOn: Boolean = ui.captionSwitch.isChecked,
-    ) = ReadyMeta(
-        fileName = ready.photo.file.name,
-        caption = caption,
-        captionOn = captionOn,
-        saved = ready.saved,
-        scheme = ready.settings.scheme,
-        rotationDegrees = ready.source.jpeg.rotationDegrees,
-        outputLongEdge = ready.source.longEdge,
-        aspect = ready.source.aspect,
-        facts = ready.facts,
-    )
+    private fun readyMeta(ready: ReviewState.Ready) =
+        ReadyMeta(
+            fileName = ready.photo.file.name,
+            message = texts.message,
+            messageOn = texts.messageOn,
+            note = texts.note,
+            noteOn = texts.noteOn,
+            savedFiles = ready.savedFiles.toSet(),
+            scheme = ready.settings.scheme,
+            rotationDegrees = ready.source.jpeg.rotationDegrees,
+            outputLongEdge = ready.source.longEdge,
+            aspect = ready.source.aspect,
+            facts = ready.facts,
+        )
 
     /**
-     * Writes the caption, switch and saved flag of the photo under review to disk. Called from the
+     * Writes the text rows and saved versions of the photo under review to disk. Called from the
      * activity's onStop, on the main thread: a small file, and done before a restart could read it.
      */
     fun persist() {
-        val ready = state as? State.Ready ?: return
+        val ready = state as? ReviewState.Ready ?: return
         val token = generation
         try {
             store.updateReady(readyMeta(ready)) { token == generation }
         } catch (e: Exception) {
-            Log.e(TAG, "could not keep the caption on disk", e)
+            Log.e(TAG, "could not keep the review texts on disk", e)
         }
     }
 
-    private fun share(messenger: Messenger?) {
-        val ready = state as? State.Ready ?: return
+    private fun share(messenger: Messenger?) = whenDrawn { ready -> send(ready, messenger) }
+
+    private fun send(
+        ready: ReviewState.Ready,
+        messenger: Messenger?,
+    ) {
         val pkg = messenger?.let { installed(it) ?: return }
-        val caption = if (ui.captionSwitch.isChecked) ui.captionText.text.toString().trim().ifEmpty { null } else null
-        val intent = Sharing.sendIntent(activity, ready.photo.file, caption, pkg)
+        val intent = Sharing.sendIntent(activity, ready.photo.file, texts.messageToSend, pkg)
         try {
             activity.startActivity(intent)
         } catch (e: ActivityNotFoundException) {
@@ -463,7 +387,9 @@ class ReviewScreen(
         val wasActive = isActive
         generation++
         store.clear() // Retake or back: the user dropped this photo
-        state = State.Idle
+        state = ReviewState.Idle
+        dropPending()
+        texts.finishEditing() // closes the keyboard; with no photo in review, nothing is drawn
         ui.busy.isVisible = false
         ui.reviewImage.setImageDrawable(null)
         ui.reviewImage.isVisible = false
@@ -479,7 +405,7 @@ class ReviewScreen(
         current = settings
         if (!isActive) return
         paintControls(settings)
-        if (state is State.Ready && ui.shareRow.isVisible) setShareVisible(true)
+        if (state is ReviewState.Ready && ui.shareRow.isVisible) setShareVisible(true)
     }
 
     /** The scheme buttons are drawn in their schemes and the quick buttons in their brands, so the palette skips them. */
@@ -491,13 +417,14 @@ class ReviewScreen(
             .paint(
                 ui.reviewControls,
                 activity.resources.displayMetrics.density,
-                setOf(ui.schemeDark, ui.schemeLight, ui.quick1, ui.quick2, ui.quick3, ui.quickStart, ui.quickEnd),
+                schemes.views + quick.views,
             )
     }
 
     private fun enter(settings: AppSettings) {
         generation++
         current = settings
+        dropPending()
         paintControls(settings)
         sentSinceCapture = false
         ui.reviewImage.isVisible = true
@@ -510,60 +437,17 @@ class ReviewScreen(
         setShareVisible(false)
     }
 
-    /** The stamped-photo rows, with the quick messengers placed by [ShareButtons]. */
+    /** The stamped-photo rows, with the quick messengers. */
     private fun setShareVisible(on: Boolean) {
-        val ready = state as? State.Ready
+        val ready = state as? ReviewState.Ready
         val visible = on && ready != null
-        ui.captionRow.isVisible = visible
+        ui.noteRow.isVisible = visible
+        ui.messageRow.isVisible = visible
         ui.schemeRow.isVisible = visible
         ui.shareRow.isVisible = visible
         ui.saveGallery.isVisible = visible
-        if (ready == null || !visible) {
-            ui.quickRow.isVisible = false
-            return
-        }
-        val s = current ?: ready.settings
-        val rows = ShareButtons.arrange(s.quickMessengers, s.quickOnStart) { installed(it) != null }
-        ui.quickRow.isVisible = rows.ownRow.isNotEmpty()
-        listOf(ui.quick1, ui.quick2, ui.quick3).forEachIndexed { i, b -> bind(b, rows.ownRow.getOrNull(i)) }
-        bindIcon(ui.quickStart, rows.beside?.takeIf { rows.besideOnStart })
-        bindIcon(ui.quickEnd, rows.beside?.takeIf { !rows.besideOnStart })
+        if (ready == null || !visible) quick.hide() else quick.show(current ?: ready.settings)
     }
-
-    /** A quick button in its own row: icon and name on the messenger's colour. */
-    private fun bind(
-        button: Button,
-        messenger: Messenger?,
-    ) {
-        button.isVisible = messenger != null
-        if (messenger == null) return
-        button.text = messenger.label
-        button.setCompoundDrawablesRelativeWithIntrinsicBounds(messenger.icon, 0, 0, 0)
-        button.compoundDrawableTintList = ColorStateList.valueOf(messenger.foreground)
-        button.setTextColor(messenger.foreground)
-        button.background = brandBackground(messenger)
-        button.setOnClickListener { share(messenger) }
-    }
-
-    /** The single quick button beside Share: the icon alone (Owner, G-003 phone test), named for TalkBack. */
-    private fun bindIcon(
-        button: ImageButton,
-        messenger: Messenger?,
-    ) {
-        button.isVisible = messenger != null
-        if (messenger == null) return
-        button.setImageResource(messenger.icon)
-        button.imageTintList = ColorStateList.valueOf(messenger.foreground)
-        button.contentDescription = messenger.label
-        button.background = brandBackground(messenger)
-        button.setOnClickListener { share(messenger) }
-    }
-
-    private fun brandBackground(m: Messenger) =
-        GradientDrawable().apply {
-            cornerRadius = ReviewPalette.CORNER_DP * activity.resources.displayMetrics.density
-            setColor(m.brandColor)
-        }
 
     private fun showSaved(saved: Boolean) {
         ui.saveGallery.isEnabled = !saved
@@ -571,16 +455,17 @@ class ReviewScreen(
     }
 
     /** At most one gallery copy per photo: marked saved before the write, so a tap or send meanwhile adds none. */
-    private fun saveToGallery(ready: State.Ready) {
+    private fun saveToGallery(ready: ReviewState.Ready) {
         if (ready.saved) return
-        ready.saved = true
+        val name = ready.photo.file.name
+        ready.savedFiles += name
         showSaved(true)
         val takenAt = ready.captureTime.toInstant().toEpochMilli()
         val token = generation
         activity.lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) { GallerySaver.save(activity.applicationContext, ready.photo.file, takenAt) }
             if (!ok) {
-                ready.saved = false
+                ready.savedFiles -= name
                 toast(R.string.gallery_failed)
             }
             if (state !== ready) return@launch
@@ -608,7 +493,5 @@ class ReviewScreen(
 
     private companion object {
         const val TAG = "ReportCam"
-        const val SCHEME_CORNER_DP = 6f
-        const val GREY = 0xFF757575.toInt()
     }
 }

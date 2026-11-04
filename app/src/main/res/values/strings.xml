@@ -8,11 +8,13 @@
     <string name="share_chooser_title">Send photo</string>
     <string name="save_gallery">Save to gallery</string>
     <string name="saved_gallery">Saved</string>
-    <string name="caption_switch">Caption</string>
+    <string name="note_switch">Note</string>
+    <string name="message_switch">Message</string>
     <string name="stamp_scheme">Stamp</string>
     <string name="scheme_dark">Dark</string>
     <string name="scheme_light">Light</string>
-    <string name="caption_hint">Text sent with the photo</string>
+    <string name="note_hint">Text printed on the stamp</string>
+    <string name="message_hint">Text sent with the photo</string>
     <string name="review_image">Captured photo with stamp</string>
     <string name="capture_failed">Could not take the photo. Try again.</string>
     <string name="process_failed">Could not process the photo.</string>

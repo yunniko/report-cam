@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import cz.julienika.reportcam.helpers.canSend
+import cz.julienika.reportcam.helpers.lastSend
 import cz.julienika.reportcam.helpers.pendingDir
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
@@ -118,12 +119,7 @@ class DeferredLocationTest {
         }
     }
 
-    private fun lastCaption(): String {
-        val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
-        @Suppress("DEPRECATION")
-        val send = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
-        return send.getStringExtra(Intent.EXTRA_TEXT)!!
-    }
+    private fun lastCaption(): String = lastSend().getStringExtra(Intent.EXTRA_TEXT)!!
 
     @Test
     fun aPreciseFixStampsTheWaitingPhotoByItself() {

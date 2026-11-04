@@ -90,7 +90,7 @@ class AppSettingsTest {
         val s = AppSettings.from(FakeSource())
         assertEquals(1280, s.outputLongEdge)
         assertTrue(s.saveToGallery)
-        assertTrue(s.caption)
+        assertTrue(s.message)
         assertTrue(s.showLocation)
         assertFalse(s.waitForPrecise)
         assertEquals(listOf("text", "datetime", "coordinates"), s.stampSpec.fields.map { it.id })
@@ -99,7 +99,7 @@ class AppSettingsTest {
 
     @Test
     fun captionCanBeSwitchedOff() {
-        assertFalse(AppSettings.from(FakeSource(Keys.CAPTION to false)).caption)
+        assertFalse(AppSettings.from(FakeSource(Keys.MESSAGE to false)).message)
     }
 
     @Test

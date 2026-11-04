@@ -44,7 +44,7 @@ data class ReviewPalette(
             if (v in skip) continue
             when (v) {
                 is ViewGroup -> walk(v, density, skip, colors)
-                // CompoundButton (the caption switch) keeps the framework's switch track; only its label is coloured.
+                // CompoundButton (the note and message switches) keeps the framework's switch track; only its label is coloured.
                 is Button ->
                     if (v !is CompoundButton) {
                         v.background = buttonBackground(density)
@@ -62,7 +62,7 @@ data class ReviewPalette(
         }
     }
 
-    /** The text colour, dimmed to [hint] while a view is disabled ("Saved to gallery", a caption switched off). */
+    /** The text colour, dimmed to [hint] while a view is disabled ("Saved to gallery"). */
     private fun textColors() =
         ColorStateList(
             arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),

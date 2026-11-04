@@ -138,7 +138,7 @@ class CameraActivity : ComponentActivity() {
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             ui.topBar.updatePadding(top = bars.top)
             ui.cameraControls.updatePadding(bottom = bars.bottom)
-            // The caption field opens the keyboard: the controls ride above it.
+            // The note and message fields open the keyboard: the controls ride above it.
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             ui.reviewControls.updatePadding(bottom = maxOf(bars.bottom, ime.bottom) + REVIEW_PAD)
             insets
@@ -204,7 +204,7 @@ class CameraActivity : ComponentActivity() {
         tracker.stop()
         // A dialled-in exposure belongs to the scene in front of the user; the next visit opens at the default.
         if (!review.isActive) chosenEvIndex = null
-        // An edited caption survives the app being killed in the background (D015).
+        // The review texts, edits included, survive the app being killed in the background (D015).
         review.persist()
         orientationListener.disable()
         super.onStop()

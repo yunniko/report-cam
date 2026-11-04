@@ -88,7 +88,8 @@ object Keys {
     const val ASPECT = "aspect_ratio"
     const val DEFAULT_EV = "default_ev"
     const val SAVE_GALLERY = "save_gallery"
-    const val CAPTION = "caption"
+    /** The message switch's default; the key keeps its 0.3 name, "caption". */
+    const val MESSAGE = "caption"
     const val QUICK_MESSENGERS = "quick_messengers"
     const val QUICK_SIDE = "quick_side"
 
@@ -135,8 +136,8 @@ data class AppSettings(
     val defaultEv: Float,
     /** Save a copy to the gallery when the photo is sent; the review's Save button saves regardless. */
     val saveToGallery: Boolean,
-    /** The review's caption switch starts on: the stamp text goes with the photo (Owner, 2026-11-03). */
-    val caption: Boolean,
+    /** The review's message switch starts on: the stamp text goes with the photo (Owner, 2026-11-03). */
+    val message: Boolean,
     /** The quick messenger buttons, in [Messenger] order, at most [Messenger.QUICK_MAX]; not yet filtered by installed. */
     val quickMessengers: List<Messenger>,
     /** A single quick messenger sits before Share (left in left-to-right languages), else after it. */
@@ -195,7 +196,7 @@ data class AppSettings(
                 aspect = AspectRatio.of(s.string(Keys.ASPECT, AspectRatio.FULL.id)),
                 defaultEv = s.string(Keys.DEFAULT_EV, "0").toFloatOrNull()?.coerceIn(-MAX_EV, MAX_EV) ?: 0f,
                 saveToGallery = s.bool(Keys.SAVE_GALLERY, true),
-                caption = s.bool(Keys.CAPTION, true),
+                message = s.bool(Keys.MESSAGE, true),
                 quickMessengers = s.stringSet(Keys.QUICK_MESSENGERS, Keys.DEFAULT_QUICK_MESSENGERS).let { ids ->
                     Messenger.entries.filter { it.id in ids }.take(Messenger.QUICK_MAX)
                 },

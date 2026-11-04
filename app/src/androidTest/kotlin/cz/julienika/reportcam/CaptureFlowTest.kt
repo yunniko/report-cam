@@ -18,6 +18,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import cz.julienika.reportcam.camera.CropGuideView
 import cz.julienika.reportcam.helpers.canSend
+import cz.julienika.reportcam.helpers.lastSend
 import cz.julienika.reportcam.helpers.pendingDir
 import cz.julienika.reportcam.helpers.view
 import cz.julienika.reportcam.helpers.waitFor
@@ -73,9 +74,7 @@ class CaptureFlowTest {
                 it.view(R.id.share_other).performClick()
             }
             intended(hasAction(Intent.ACTION_CHOOSER))
-            val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
-            @Suppress("DEPRECATION")
-            val send = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+            val send = lastSend()
             assertEquals("image/jpeg", send.type)
             val caption = send.getStringExtra(Intent.EXTRA_TEXT)!!
             assertTrue(caption, caption.startsWith("Flow test\n"))
@@ -84,15 +83,13 @@ class CaptureFlowTest {
 
     @Test
     fun captionSwitchedOffSendsPhotoOnly() {
-        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(Keys.CAPTION, false).commit()
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(Keys.MESSAGE, false).commit()
         ActivityScenario.launch(CameraActivity::class.java).use { s ->
             s.waitFor("live preview") { it.view(R.id.shutter).isEnabled }
             s.onActivity { it.view(R.id.shutter).performClick() }
             s.waitFor("stamped review") { it.canSend() }
             s.onActivity { it.view(R.id.share_other).performClick() }
-            val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
-            @Suppress("DEPRECATION")
-            val send = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+            val send = lastSend()
             assertTrue(!send.hasExtra(Intent.EXTRA_TEXT))
         }
     }
@@ -108,9 +105,7 @@ class CaptureFlowTest {
             }
             s.waitFor("stamped review") { it.canSend() }
             s.onActivity { it.view(R.id.share_other).performClick() }
-            val chooser = Intents.getIntents().last { it.action == Intent.ACTION_CHOOSER }
-            @Suppress("DEPRECATION")
-            val send = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+            val send = lastSend()
             @Suppress("DEPRECATION")
             val uri = send.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)!!
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

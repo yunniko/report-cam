@@ -70,10 +70,13 @@ data class StampFacts(
         private const val CITY = "data.city"
         private const val ADDRESS = "data.address"
 
+        /** The note as the stamp carries it: trimmed, and null when there is none. */
+        fun stampedNote(text: String?): String? = text?.trim()?.ifEmpty { null }
+
         fun of(data: StampData) =
             StampFacts(
                 captureTime = data[StampKeys.CAPTURE_TIME] ?: ZonedDateTime.now(),
-                userText = data[StampKeys.USER_TEXT],
+                userText = stampedNote(data[StampKeys.USER_TEXT]),
                 location = data[StampKeys.LOCATION],
                 place = data[StampKeys.PLACE],
             )
@@ -100,7 +103,7 @@ data class StampFacts(
                 p.getProperty(PLACE)?.let {
                     Place(p.getProperty(STREET), p.getProperty(NUMBER), p.getProperty(CITY), p.getProperty(ADDRESS))
                 }
-            return StampFacts(ZonedDateTime.parse(p.getProperty(TIME)), p.getProperty(TEXT), location, place)
+            return StampFacts(ZonedDateTime.parse(p.getProperty(TIME)), stampedNote(p.getProperty(TEXT)), location, place)
         }
     }
 }
@@ -109,11 +112,14 @@ data class StampFacts(
 data class ReadyMeta(
     /** The shared file's name, so the restored copy is the same file a messenger would get. */
     val fileName: String,
-    /** The caption text as the user left it, edits included. */
-    val caption: String,
-    val captionOn: Boolean,
-    /** True once this version is in the gallery: Save and send-time saving then add no second copy. */
-    val saved: Boolean,
+    /** The message (text sent with the photo) as the user left it, edits included. */
+    val message: String,
+    val messageOn: Boolean,
+    /** The note field as the user left it; what is stamped is in [facts] (`userText`). */
+    val note: String,
+    val noteOn: Boolean,
+    /** The versions of this photo already in the gallery: Save and send-time saving add no second copy of them. */
+    val savedFiles: Set<String>,
     val scheme: SchemeId,
     /** How the kept camera JPEG becomes the photo: the same shape and size as at the shutter. */
     val rotationDegrees: Int,
@@ -122,13 +128,16 @@ data class ReadyMeta(
     val facts: StampFacts,
 ) {
     val captureTime: ZonedDateTime get() = facts.captureTime
+    val saved: Boolean get() = fileName in savedFiles
 
     fun toProperties() =
         Properties().apply {
             setProperty(FILE, fileName)
-            setProperty(CAPTION, caption)
-            setProperty(CAPTION_ON, captionOn.toString())
-            setProperty(SAVED, saved.toString())
+            setProperty(MESSAGE, message)
+            setProperty(MESSAGE_ON, messageOn.toString())
+            setProperty(NOTE, note)
+            setProperty(NOTE_ON, noteOn.toString())
+            setProperty(SAVED_FILES, savedFiles.joinToString("/"))
             setProperty(SCHEME, scheme.id)
             setProperty(ROTATION, rotationDegrees.toString())
             setProperty(LONG_EDGE, outputLongEdge.toString())
@@ -138,8 +147,14 @@ data class ReadyMeta(
 
     companion object {
         private const val FILE = "file"
-        private const val CAPTION = "caption"
-        private const val CAPTION_ON = "caption_on"
+        // The message keys keep their 0.3 names, so a photo left in review survives the update.
+        private const val MESSAGE = "caption"
+        private const val MESSAGE_ON = "caption_on"
+        private const val NOTE = "note"
+        private const val NOTE_ON = "note_on"
+        private const val SAVED_FILES = "saved_files"
+
+        /** 0.3's flag for the one version kept; read when [SAVED_FILES] is absent. */
         private const val SAVED = "saved"
         private const val SCHEME = "scheme"
         private const val ROTATION = "rotation"
@@ -152,16 +167,23 @@ data class ReadyMeta(
                 val file = p.getProperty(FILE)
                 // A name only, never a path: it is resolved inside the shared folder on restore.
                 require(!file.isNullOrBlank() && File(file).name == file)
+                val facts = StampFacts.readFrom(p)
+                val savedFiles =
+                    p.getProperty(SAVED_FILES)?.split('/')?.filter { it.isNotEmpty() }?.toSet()
+                        ?: if (p.getProperty(SAVED).toBooleanStrict()) setOf(file) else emptySet()
                 ReadyMeta(
                     fileName = file,
-                    caption = p.getProperty(CAPTION) ?: "",
-                    captionOn = p.getProperty(CAPTION_ON).toBooleanStrict(),
-                    saved = p.getProperty(SAVED).toBooleanStrict(),
+                    message = p.getProperty(MESSAGE) ?: "",
+                    messageOn = p.getProperty(MESSAGE_ON).toBooleanStrict(),
+                    // A 0.3 entry had no note row: the note is what was stamped, switched on.
+                    note = p.getProperty(NOTE) ?: facts.userText.orEmpty(),
+                    noteOn = p.getProperty(NOTE_ON)?.toBooleanStrict() ?: true,
+                    savedFiles = savedFiles,
                     scheme = requireNotNull(SchemeId.of(p.getProperty(SCHEME) ?: "")),
                     rotationDegrees = p.getProperty(ROTATION).toInt(),
                     outputLongEdge = p.getProperty(LONG_EDGE).toInt(),
                     aspect = AspectRatio.of(p.getProperty(ASPECT) ?: ""),
-                    facts = StampFacts.readFrom(p),
+                    facts = facts,
                 )
             }.getOrNull()
     }

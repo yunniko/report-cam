@@ -1,7 +1,7 @@
 # report-cam
 
 A small Android camera for photo reports. Open the app, take a photo, and it is stamped with the
-date and time, your location and a text set in Settings. Edit the caption if you like, then send it with
+date and time, your location and a text set in Settings. Edit the note on the stamp and the message sent with it if you like, then send it with
 one tap to up to three messengers of your choice, or through the system Share sheet.
 Nothing runs in the background, and the camera is open only while the live preview is on screen.
 
@@ -10,12 +10,12 @@ Nothing runs in the background, and the camera is open only while the live previ
   counts as precise (5–50 m, default 20 m), place name (street address through Android's Geocoder, off by
   default) and whether coordinates print beside it, wait for precise location, stamp corner, frame border width
   and size, the dark and light stamp schemes (colours and transparency, edited in a dialog with live previews),
-  photo shape and size (small by default), default exposure, saving to the gallery when sent, the caption
+  photo shape and size (small by default), default exposure, saving to the gallery when sent, the message
   switch's starting state, the quick send buttons (WhatsApp, Telegram, Messenger, Discord, Slack, Snapchat,
   Instagram; only installed ones show), and the app theme (system, light or dark).
 - The marker at top left shows the location state; tap it to allow location. Tap the preview to focus,
   pinch to zoom, use the slider for exposure.
-- A stamped photo not yet sent comes back after the app is closed, with its caption.
+- A stamped photo not yet sent comes back after the app is closed, with its note and message.
 - Stamp data is also stored in the file's EXIF and XMP metadata.
 - Project state and how it fits together: `HANDOVER.md`.
 
