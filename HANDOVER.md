@@ -6,7 +6,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 ## Current state
 
 G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
-hash-named versions), M2 (compact text fields) and M3 (two-column frame) are done, M4 (release) is open.
+hash-named versions), M2 (compact text fields), M3 (two-column frame) and M4 (icons, release 0.4.0) are done;
+it waits for the Owner's sign-off. G-005 (quick stamp row) is a draft whose plan awaits the Owner.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -70,14 +71,17 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
   switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
-- Release build 0.3.1 (code 7): signed with the D007 key, 1.60 MB, sent to the Owner. Settings, the colour dialog
-  and the review screen with brand-coloured quick buttons open in it (custom Preference classes survive R8).
-  `scripts/camera-release-check.sh` on 0.3.0: 10/10 with `WAIT=6` twice; at the default 3 s wait the "screen off"
+- Icons (D028): Retake, Save to gallery, Share and the Dark/Light buttons carry an icon before the label, tinted
+  to the button text; the Settings corner chips show only their icon (named for TalkBack), the frame chips icon and
+  label. Sources and licenses in README.
+- Release build 0.4.0 (code 8): signed with the D007 key, 1.61 MB, sent to the Owner. The review screen with its
+  icons and the Settings position grid open in it. `scripts/camera-release-check.sh` on 0.4.0: 10/10 with
+  `WAIT=6` twice; at the default 3 s wait the "screen off"
   step can fail, because camera close on this emulator takes 2–5 s.
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
-On a real phone the Owner tested 0.3.1 and approved it (2026-11-04). Not measured by us there: the place-name
+On a real phone the Owner tested 0.3.1 and approved it (2026-11-04); 0.4.0 is not yet tested there. Not measured by us there: the place-name
 format Google returns, each messenger's message handling, pinch zoom, startup times.
 
 ## How things fit together
@@ -131,7 +135,8 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 ## Next steps and open questions
 
-- G-004 M4: release 0.4.0 (code 8): full suites, release APK to the Owner, push.
+- G-004: done, awaiting the Owner's sign-off on 0.4.0.
+- G-005 (quick stamp row: position and colour icons chosen in Settings): plan in GOALS.md awaits the Owner.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

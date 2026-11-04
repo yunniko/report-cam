@@ -42,5 +42,11 @@ follow the app theme; the live camera view is always black. The stamp style is c
 - `ic_settings.xml`, `ic_location_on.xml`, `ic_location_off.xml`: Material Icons, Google, Apache License 2.0.
 - `ic_msg_*.xml` (messenger logos): Boxicons brand set (https://icon-sets.iconify.design/bxl/), MIT License.
   The logos are trademarks of their owners and are used only to label the send buttons.
+- `ic_save.xml`, `ic_retake.xml`, `ic_share.xml`, `ic_pos_*.xml` (stamp corners): OpenSearch UI icons
+  (https://icon-sets.iconify.design/oui/), Apache License 2.0.
+- `ic_frame_bottom.xml`, `ic_frame_top.xml`: css.gg "polaroid" (https://icon-sets.iconify.design/gg/), MIT License;
+  the top-frame icon is the same drawing turned 180 degrees.
+- `ic_scheme_dark.xml`, `ic_scheme_light.xml`: Material Symbols "dark-mode" and "light-mode"
+  (https://icon-sets.iconify.design/material-symbols/), Google, Apache License 2.0.
 - The launcher icon is original artwork.
 - `preview_photo.jpg` (the colour dialog's preview): the Owner's own photo of Český Krumlov, cropped, metadata stripped.

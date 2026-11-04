@@ -208,11 +208,13 @@
             <Button
                 android:id="@+id/scheme_dark"
                 style="@style/SchemeButton"
+                android:drawableStart="@drawable/ic_scheme_dark"
                 android:text="@string/scheme_dark" />
 
             <Button
                 android:id="@+id/scheme_light"
                 style="@style/SchemeButton"
+                android:drawableStart="@drawable/ic_scheme_light"
                 android:text="@string/scheme_light" />
         </LinearLayout>
 
@@ -329,6 +331,7 @@
                 android:id="@+id/share_other"
                 style="@style/ReviewButton"
                 android:layout_weight="2"
+                android:drawableStart="@drawable/ic_share"
                 android:text="@string/share_other" />
 
             <ImageButton
@@ -346,6 +349,7 @@
             <Button
                 android:id="@+id/retake"
                 style="@style/ReviewButton"
+                android:drawableStart="@drawable/ic_retake"
                 android:text="@string/retake" />
 
             <Button
@@ -357,6 +361,7 @@
             <Button
                 android:id="@+id/save_gallery"
                 style="@style/ReviewButton"
+                android:drawableStart="@drawable/ic_save"
                 android:text="@string/save_gallery"
                 android:visibility="gone" />
         </LinearLayout>

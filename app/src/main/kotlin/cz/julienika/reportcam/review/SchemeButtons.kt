@@ -1,5 +1,6 @@
 package cz.julienika.reportcam.review
 
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import cz.julienika.reportcam.R
 import cz.julienika.reportcam.databinding.ActivityCameraBinding
@@ -33,6 +34,7 @@ class SchemeButtons(
                     setStroke(((if (chosen) 3 else 1) * density).toInt(), if (chosen) accent else GREY)
                 }
             button.setTextColor(scheme.text)
+            button.compoundDrawableTintList = ColorStateList.valueOf(scheme.text)
             button.isSelected = chosen
         }
     }

@@ -2,6 +2,7 @@ package cz.julienika.reportcam.settings.ui
 
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -19,13 +20,23 @@ class CornerPreference(
     attrs: AttributeSet?,
 ) : SegmentedPreference(context, attrs) {
     override fun content(c: Context): View {
+        // Each button shows its position as an icon in the chip's text colour. A corner shows only the icon and
+        // keeps its name for TalkBack; a frame keeps its label beside the icon.
         fun chip(
             v: String,
             label: Int,
-        ) = Controls.chip(c, c.getString(label), v == value, isEnabled) { pick(v) }.apply {
-            // Narrow corner buttons: "Bottom right" must fit on one line.
-            textSize = 13f
-            setPadding(c.dp(2), paddingTop, c.dp(2), paddingBottom)
+            icon: Int,
+            iconOnly: Boolean,
+        ) = Controls.chip(c, if (iconOnly) "" else c.getString(label), v == value, isEnabled) { pick(v) }.apply {
+            val d = requireNotNull(c.getDrawable(icon)).mutate().apply { setTint(currentTextColor) }
+            if (iconOnly) {
+                contentDescription = c.getString(label)
+                // Drawn on the background, so the icon is centred in the chip rather than above an empty line.
+                background = LayerDrawable(arrayOf(background, d)).apply { setLayerGravity(1, Gravity.CENTER) }
+            } else {
+                setCompoundDrawablesRelativeWithIntrinsicBounds(d, null, null, null)
+                compoundDrawablePadding = c.dp(4)
+            }
         }
 
         val photo =
@@ -39,18 +50,19 @@ class CornerPreference(
             }
         val corners =
             listOf(
-                Triple("overlay_top_start", R.string.corner_top_start, Gravity.TOP or Gravity.START),
-                Triple("overlay_top_end", R.string.corner_top_end, Gravity.TOP or Gravity.END),
-                Triple("overlay_bottom_start", R.string.corner_bottom_start, Gravity.BOTTOM or Gravity.START),
-                Triple("overlay_bottom_end", R.string.corner_bottom_end, Gravity.BOTTOM or Gravity.END),
+                Corner("overlay_top_start", R.string.corner_top_start, R.drawable.ic_pos_top_start, Gravity.TOP or Gravity.START),
+                Corner("overlay_top_end", R.string.corner_top_end, R.drawable.ic_pos_top_end, Gravity.TOP or Gravity.END),
+                Corner("overlay_bottom_start", R.string.corner_bottom_start, R.drawable.ic_pos_bottom_start, Gravity.BOTTOM or Gravity.START),
+                Corner("overlay_bottom_end", R.string.corner_bottom_end, R.drawable.ic_pos_bottom_end, Gravity.BOTTOM or Gravity.END),
             )
-        for ((v, label, gravity) in corners) {
-            photo.addView(chip(v, label), FrameLayout.LayoutParams(c.dp(CORNER_W), ViewGroup.LayoutParams.WRAP_CONTENT, gravity))
+        for (k in corners) {
+            val lp = FrameLayout.LayoutParams(c.dp(CORNER_W), ViewGroup.LayoutParams.WRAP_CONTENT, k.gravity)
+            photo.addView(chip(k.value, k.label, k.icon, iconOnly = true), lp)
         }
         val frames =
             FrameLayout(c).apply {
-                addView(chip("frame_top", R.string.frame_top), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
-                addView(chip("frame_bottom", R.string.frame_bottom), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
+                addView(chip("frame_top", R.string.frame_top, R.drawable.ic_frame_top, iconOnly = false), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
+                addView(chip("frame_bottom", R.string.frame_bottom, R.drawable.ic_frame_bottom, iconOnly = false), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
             }
         return LinearLayout(c).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -59,8 +71,15 @@ class CornerPreference(
         }
     }
 
+    private class Corner(
+        val value: String,
+        val label: Int,
+        val icon: Int,
+        val gravity: Int,
+    )
+
     private companion object {
         const val HEIGHT = 128
-        const val CORNER_W = 82
+        const val CORNER_W = 64
     }
 }
