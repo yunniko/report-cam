@@ -121,6 +121,8 @@ data class ReadyMeta(
     /** The versions of this photo already in the gallery: Save and send-time saving add no second copy of them. */
     val savedFiles: Set<String>,
     val scheme: SchemeId,
+    /** Where the stamp sits on this photo (G-005); null for an entry from 0.4, which used the Settings one. */
+    val placement: String? = null,
     /** How the kept camera JPEG becomes the photo: the same shape and size as at the shutter. */
     val rotationDegrees: Int,
     val outputLongEdge: Int,
@@ -139,6 +141,7 @@ data class ReadyMeta(
             setProperty(NOTE_ON, noteOn.toString())
             setProperty(SAVED_FILES, savedFiles.joinToString("/"))
             setProperty(SCHEME, scheme.id)
+            placement?.let { setProperty(PLACEMENT, it) }
             setProperty(ROTATION, rotationDegrees.toString())
             setProperty(LONG_EDGE, outputLongEdge.toString())
             setProperty(ASPECT, aspect.id)
@@ -157,6 +160,7 @@ data class ReadyMeta(
         /** 0.3's flag for the one version kept; read when [SAVED_FILES] is absent. */
         private const val SAVED = "saved"
         private const val SCHEME = "scheme"
+        private const val PLACEMENT = "placement"
         private const val ROTATION = "rotation"
         private const val LONG_EDGE = "long_edge"
         private const val ASPECT = "aspect"
@@ -180,6 +184,7 @@ data class ReadyMeta(
                     noteOn = p.getProperty(NOTE_ON)?.toBooleanStrict() ?: true,
                     savedFiles = savedFiles,
                     scheme = requireNotNull(SchemeId.of(p.getProperty(SCHEME) ?: "")),
+                    placement = p.getProperty(PLACEMENT),
                     rotationDegrees = p.getProperty(ROTATION).toInt(),
                     outputLongEdge = p.getProperty(LONG_EDGE).toInt(),
                     aspect = AspectRatio.of(p.getProperty(ASPECT) ?: ""),

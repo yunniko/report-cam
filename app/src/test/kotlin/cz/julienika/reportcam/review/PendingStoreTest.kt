@@ -98,6 +98,7 @@ class PendingStoreTest {
             noteOn = true,
             savedFiles = setOf("report_20261103_133847_123_0a1b2c3d.jpg", "report_20261103_133847_123_99ff0011.jpg"),
             scheme = SchemeId.LIGHT,
+            placement = "frame_top",
             rotationDegrees = 90,
             outputLongEdge = 1280,
             aspect = AspectRatio.R4_5,
@@ -202,6 +203,18 @@ class PendingStoreTest {
         assertEquals(setOf(ready.fileName), m.savedFiles)
         assertTrue(m.saved)
         assertEquals(ready.message, m.message)
+    }
+
+    @Test
+    fun anEntryFrom04ComesBackWithoutAPositionOfItsOwn() {
+        val dir = File(tmp.root, "pending").apply { mkdirs() }
+        File(dir, "stamped.jpg").writeBytes(bytes)
+        File(dir, "source.jpg").writeBytes(source.bytes)
+        val old = ready.toProperties().apply { remove("placement") }
+        File(dir, "ready.properties").outputStream().use { old.store(it, null) }
+        val m = store().loadReady()!!.meta
+        assertNull("the review uses the Settings position", m.placement)
+        assertEquals(ready.copy(placement = null), m)
     }
 
     @Test

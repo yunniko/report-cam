@@ -151,10 +151,18 @@ data class AppSettings(
     val appTheme: AppTheme = AppTheme.SYSTEM,
     /** The review's note and message read as plain text until tapped (Owner, G-004); off by default. */
     val compactTexts: Boolean = false,
+    /** The frame border chosen in Settings, kept for a frame picked on the review while an overlay is the default. */
+    val frameBorder: Float = 0f,
 ) {
     /** These settings stamping with [id] instead: the review's dark/light switch. */
     fun withScheme(id: SchemeId): AppSettings =
         copy(scheme = id, stampSpec = stampSpec.copy(style = schemes.getValue(id).style(stampSpec.style.textSizeFraction)))
+
+    /** Stored id of where the stamp goes, one of [PLACEMENTS]. */
+    val placementId: String get() = stampSpec.placement.id
+
+    /** These settings stamping at the placement [id] instead (G-005), a frame with the border from Settings. */
+    fun withPlacement(id: String): AppSettings = copy(stampSpec = stampSpec.copy(placement = placementOf(id, frameBorder)))
 
     companion object {
         fun from(
@@ -187,7 +195,8 @@ data class AppSettings(
             }
             val schemes = SchemeId.entries.associateWith { scheme(s, it) }
             val scheme = SchemeId.of(s.string(Keys.STAMP_SCHEME, "")) ?: legacyScheme(s)
-            val spec = StampSpec(fields, placement(s), schemes.getValue(scheme).style(textSize(s)))
+            val border = FRAME_BORDERS[s.string(Keys.FRAME_BORDER, Keys.DEFAULT_FRAME_BORDER)] ?: FRAME_BORDERS.getValue(Keys.DEFAULT_FRAME_BORDER)
+            val spec = StampSpec(fields, placementOf(s.string(Keys.PLACEMENT, Keys.DEFAULT_PLACEMENT), border), schemes.getValue(scheme).style(textSize(s)))
             return AppSettings(
                 stampSpec = spec,
                 userText = s.string(Keys.STAMP_TEXT, "").trim(),
@@ -209,6 +218,7 @@ data class AppSettings(
                 preciseWithinM = preciseWithinM,
                 appTheme = AppTheme.of(s.string(Keys.APP_THEME, AppTheme.SYSTEM.id)),
                 compactTexts = s.bool(Keys.COMPACT_TEXTS, false),
+                frameBorder = border,
             )
         }
 
@@ -235,11 +245,13 @@ data class AppSettings(
             s.string(Keys.PRECISE_ACCURACY, "").toFloatOrNull()?.takeIf { it in FixQuality.PRECISE_CHOICES_M }
                 ?: FixQuality.DEFAULT_PRECISE_M
 
-        private fun placement(s: SettingsSource): StampPlacement {
-            val p = PLACEMENTS[s.string(Keys.PLACEMENT, Keys.DEFAULT_PLACEMENT)] ?: PLACEMENTS.getValue(Keys.DEFAULT_PLACEMENT)
-            if (p !is FramePlacement) return p
-            val border = FRAME_BORDERS[s.string(Keys.FRAME_BORDER, Keys.DEFAULT_FRAME_BORDER)] ?: FRAME_BORDERS.getValue(Keys.DEFAULT_FRAME_BORDER)
-            return p.copy(borderFraction = border)
+        /** The placement stored as [id], the default for an unknown one; a frame gets [border]. */
+        private fun placementOf(
+            id: String,
+            border: Float,
+        ): StampPlacement {
+            val p = PLACEMENTS[id] ?: PLACEMENTS.getValue(Keys.DEFAULT_PLACEMENT)
+            return if (p is FramePlacement) p.copy(borderFraction = border) else p
         }
 
         private fun textSize(s: SettingsSource) =

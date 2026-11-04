@@ -7,7 +7,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
 hash-named versions), M2 (compact text fields), M3 (two-column frame) and M4 (icons, release 0.4.0) are done;
-it waits for the Owner's sign-off. G-005 (quick stamp row) is a draft whose plan awaits the Owner.
+it waits for the Owner's sign-off. G-005 (quick stamp row) is active: M1 (per-photo position, D029) is done
+in code and unit tests; it has no button on the review until M2.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -67,7 +68,7 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 153/153 unit, 40/40 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 155/155 unit (instrumented last run at 2a30319), 40/40 instrumented (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
   switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
@@ -136,7 +137,8 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 ## Next steps and open questions
 
 - G-004: done, awaiting the Owner's sign-off on 0.4.0.
-- G-005 (quick stamp row: position and colour icons chosen in Settings): plan in GOALS.md awaits the Owner.
+- G-005 M2: the quick row on the review (group rules, icons, two-button named form). M3: Settings for the row
+  and the Note/Message rows. M4: release 0.5.0.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

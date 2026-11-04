@@ -28,3 +28,4 @@
 - D026 — Compact text fields are plain text until tapped, and closing the keyboard ends the edit — active
 - D027 — The frame band has two columns, where on the right, and stacks when they do not fit — active
 - D028 — Action and position buttons carry iconify icons; corner chips show only theirs — active
+- D029 — A position picked on the review changes that photo only — active

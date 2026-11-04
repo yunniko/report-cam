@@ -2,6 +2,7 @@ package cz.julienika.reportcam.settings
 
 import cz.julienika.reportcam.photo.AspectRatio
 import cz.julienika.reportcam.share.Messenger
+import cz.julienika.reportcam.stamp.Corner
 import cz.julienika.reportcam.stamp.FramePlacement
 import cz.julienika.reportcam.stamp.GeoFix
 import cz.julienika.reportcam.stamp.LocationReading
@@ -237,6 +238,19 @@ class AppSettingsTest {
         assertEquals(0xFF000000.toInt(), light.stampSpec.style.textColor)
         assertEquals(StampStyle.TEXT_LARGE, light.stampSpec.style.textSizeFraction, 0f)
         assertEquals(a.stampSpec.fields, light.stampSpec.fields)
+    }
+
+    @Test
+    fun withPlacementMovesTheStampAndAFrameKeepsTheBorderFromSettings() {
+        val a = AppSettings.from(FakeSource(Keys.PLACEMENT to "overlay_top_end", Keys.FRAME_BORDER to "thick"))
+        assertEquals("overlay_top_end", a.placementId)
+        val framed = a.withPlacement("frame_bottom")
+        assertEquals(FramePlacement(top = false, borderFraction = 0.1f), framed.stampSpec.placement)
+        assertEquals(a.stampSpec.style, framed.stampSpec.style)
+        assertEquals(a.stampSpec.fields, framed.stampSpec.fields)
+        assertEquals(OverlayPlacement(Corner.BOTTOM_START), framed.withPlacement("overlay_bottom_start").stampSpec.placement)
+        // An id no build knows falls back to the default, as a stored one does.
+        assertEquals(Keys.DEFAULT_PLACEMENT, a.withPlacement("nowhere").placementId)
     }
 
     @Test

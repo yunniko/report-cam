@@ -67,8 +67,9 @@ class ReviewScreen(
      */
     private var current: AppSettings? = null
 
-    /** A scheme tapped, and what to do once the photo is drawn: kept while a redraw runs ([redraw]). */
+    /** A scheme or position tapped, and what to do once the photo is drawn: kept while a redraw runs ([redraw]). */
     private var wantedScheme: SchemeId? = null
+    private var wantedPlacement: String? = null
     private val afterRedraw = mutableListOf<(ReviewState.Ready) -> Unit>()
 
     private val versions = PhotoVersions(sharedDir, places)
@@ -146,7 +147,8 @@ class ReviewScreen(
                 Log.i(TAG, "restored a stamped photo, taken ${m.captureTime}")
                 val source = PhotoSource(kept.source, m.outputLongEdge, m.aspect)
                 texts.show(m.note, m.noteOn, m.message, m.messageOn)
-                showReady(ReviewState.Ready(photo, settings.withScheme(m.scheme), m.savedFiles.toMutableSet(), source, m.facts))
+                val look = settings.withScheme(m.scheme).let { s -> m.placement?.let(s::withPlacement) ?: s }
+                showReady(ReviewState.Ready(photo, look, m.savedFiles.toMutableSet(), source, m.facts))
                 // A note left mid-edit when the app was stopped is drawn now.
                 redraw()
                 return@launch
@@ -259,22 +261,28 @@ class ReviewScreen(
     }
 
     /**
-     * Draws the photo under review again if its look changed: the scheme tapped (G-003) or the note finished
-     * (G-004). The new version is drawn from the kept camera JPEG (D019), or is the version drawn earlier with
+     * Draws the photo under review again if its look changed: the scheme tapped (G-003), the note finished
+     * (G-004) or the position tapped (G-005). The new version is drawn from the kept camera JPEG (D019), or is the version drawn earlier with
      * the same look (D025). [then] runs on the current version once everything asked for so far is drawn; a
      * call during a redraw is picked up when that one ends. The message follows the note unless edited.
      */
     private fun redraw(
         scheme: SchemeId? = null,
+        placement: String? = null,
         then: ((ReviewState.Ready) -> Unit)? = null,
     ) {
         if (scheme != null) wantedScheme = scheme
+        if (placement != null) wantedPlacement = placement
         if (then != null) afterRedraw += then
         val ready = state as? ReviewState.Ready ?: return
-        val s = ready.settings.withScheme(wantedScheme ?: ready.settings.scheme)
+        val s =
+            ready.settings
+                .withScheme(wantedScheme ?: ready.settings.scheme)
+                .withPlacement(wantedPlacement ?: ready.settings.placementId)
         val facts = ready.facts.copy(userText = texts.stampedNote)
         wantedScheme = null
-        if (s.scheme == ready.settings.scheme && facts == ready.facts) {
+        wantedPlacement = null
+        if (s.scheme == ready.settings.scheme && s.placementId == ready.settings.placementId && facts == ready.facts) {
             val actions = afterRedraw.toList()
             afterRedraw.clear()
             actions.forEach { if (state === ready) it(ready) }
@@ -318,9 +326,10 @@ class ReviewScreen(
         }
     }
 
-    /** Forgets a scheme asked for and the action waiting for a redraw: the photo they were for is gone. */
+    /** Forgets a look asked for and the action waiting for a redraw: the photo they were for is gone. */
     private fun dropPending() {
         wantedScheme = null
+        wantedPlacement = null
         afterRedraw.clear()
     }
 
@@ -340,6 +349,7 @@ class ReviewScreen(
             noteOn = texts.noteOn,
             savedFiles = ready.savedFiles.toSet(),
             scheme = ready.settings.scheme,
+            placement = ready.settings.placementId,
             rotationDegrees = ready.source.jpeg.rotationDegrees,
             outputLongEdge = ready.source.longEdge,
             aspect = ready.source.aspect,
