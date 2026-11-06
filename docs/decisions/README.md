@@ -34,3 +34,4 @@
 - D032 — An unsent photo past the Settings limit is dropped at the next start, never by a timer — active
 - D033 — The portrait lock stays; large screens may rotate the camera — active
 - D034 — The frame icons are original drawings; css.gg is out — active
+- D035 — Data safety declares no collection and no sharing; the place lookup is the user's opt-in — active

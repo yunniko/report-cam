@@ -7,8 +7,8 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 G-001 to G-005 are done and signed off (archived in `docs/goals-archive.md`). G-007 (discard an unsent photo
 after a set time) is complete: 0.6.0 is with the Owner and waits for their sign-off. G-006 (Google Play
-release 1.0.0) is active: M1 (release readiness, D033), M2 (About card, privacy policy, D034) and M3 (store
-assets) are done; M4 (console answers) is next.
+release 1.0.0) is active: M1 (release readiness, D033), M2 (About card, privacy policy, D034), M3 (store
+assets) and M4 (the Console answer sheet, D035) are done; M5 (the release itself) waits on the Owner's Console steps.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -105,6 +105,12 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   with the emulator's fix at Český Krumlov (review light and dark, frame, waiting for location, Settings light and
   dark, the scheme dialog); `docs/play/listing.md` in English with a Czech draft. No live-camera shot: the
   emulator's camera is a test pattern, so that one, if wanted, is taken on a phone.
+- Console answer sheet (G-006 M4): `docs/play/console-answers.md` gives every form of a first release its answer
+  and reason (account, Play App Signing with the D007 key through PEPK, listing, the App content declarations,
+  Data safety as "nothing collected or shared" with the place lookup as the user's opt-in (D035), content rating,
+  target audience 18+, the closed test with a tester note and the production application, release notes). It was
+  written against Google's help pages read 2026-11-06; the exact PEPK flags and questionnaire wording are read
+  from the Console when the Owner gets there.
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
@@ -164,8 +170,9 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 ## Next steps and open questions
 
 - PENDING APPROVAL: the Owner's phone test and sign-off of 0.6.0 (G-007), sent on Telegram 2026-11-06.
-- G-006: M4 (console answers) next, then M5 (the release); every Play Console upload is the Owner's (its GOALS.md
-  entry lists their part). The listing texts and the Czech draft in `docs/play/listing.md` await the Owner's approval.
+- BLOCKED: G-006 M5 needs the Owner's Console steps (account, GitHub Pages for the policy URL, key upload, forms
+  from `docs/play/console-answers.md`, the uploads); JulAI's part of M5 is reacting to the pre-launch report and
+  review findings. The listing texts and the Czech draft in `docs/play/listing.md` await the Owner's approval.
 - The privacy policy assumes a GitHub Pages URL under the public repo, the publisher name "Julienika (julienika.cz)"
   and the contact `info@julienika.cz`; the Owner's hosting choice changes one string in `settings_strings.xml`.
 - `ReviewScreen` is at the 500-line guideline (504); the next goal touching it splits the restore path out.
