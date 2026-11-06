@@ -7,7 +7,7 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 G-001 to G-005 are done and signed off (archived in `docs/goals-archive.md`). G-007 (discard an unsent photo
 after a set time) is complete: 0.6.0 is with the Owner and waits for their sign-off. G-006 (Google Play
-release 1.0.0) is accepted and runs next.
+release 1.0.0) is active: M1 (release readiness, D033) is done; M2 (About card, privacy policy) is next.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -88,6 +88,10 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   discard rows. `scripts/camera-release-check.sh` on 0.6.0 passes 10/10 twice with `WAIT=6`; its launch step right after an
   install can miss the camera opening on this emulator (1 of 4 runs); at the default 3 s wait the "screen off"
   step can fail, because camera close on this emulator takes 2–5 s.
+- Play readiness (G-006 M1): the tree builds 1.0.0 (code 11); `scripts/play-release-check.sh` builds the signed
+  App Bundle (2.6 MB, four ABIs) and passes 5/5: release lint, the D007 signature, no test classes or
+  instrumentation inside, all eight native libraries 16 KB aligned. The portrait lock stays and Play's large-screen
+  note on it is accepted (D033); the landscape layout on large screens is unverified.
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
@@ -147,7 +151,8 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 ## Next steps and open questions
 
 - PENDING APPROVAL: the Owner's phone test and sign-off of 0.6.0 (G-007), sent on Telegram 2026-11-06.
-- G-006: M1 to M4 next; every Play Console upload is the Owner's (its GOALS.md entry lists their part).
+- G-006: M2 (About card, privacy policy), M3 (store assets), M4 (console answers) next; every Play Console upload
+  is the Owner's (its GOALS.md entry lists their part).
 - `ReviewScreen` is at the 500-line guideline (504); the next goal touching it splits the restore path out.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).

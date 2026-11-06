@@ -34,6 +34,14 @@ scripts/camera-release-check.sh  # camera held only while previewing (adb, Git B
 gradlew :stub-messenger:assembleDebug  # stand-in messengers for emulator tests, see stub-messenger/README.md
 ```
 
+Release builds need `keystore.properties` in the project root (git-ignored; the key lives outside the repo):
+
+```
+gradlew assembleRelease          # app/build/outputs/apk/release/app-release.apk, for sideloading
+gradlew bundleRelease            # app/build/outputs/bundle/release/app-release.aab, for Google Play
+scripts/play-release-check.sh    # builds the bundle and checks it: release lint, signature, nothing test-only, 16 KB libraries
+```
+
 ## Style
 
 UI: black camera screen, accent `#F2A33A`, primary `#1F5F8B`. Settings and the controls under a photo
