@@ -188,6 +188,8 @@ class CameraActivity : ComponentActivity() {
         ui.cropGuide.ratio = settings.aspect
         // After a send, coming back means "next photo", not the old review.
         if (review.isActive && review.sentSinceCapture) review.leave()
+        // A photo left in review past the Settings limit is dropped on coming back too, not only at a cold start (G-007).
+        if (review.isActive && review.isExpired(settings, System.currentTimeMillis())) review.restore(settings)
         if (hasCameraPermission()) {
             ui.permissionPanel.isVisible = false
             if (!review.isActive) openCamera()

@@ -102,6 +102,20 @@ class SettingsScreenTest {
         assertEquals(setOf("whatsapp", "telegram", "discord"), prefs.getStringSet(Keys.QUICK_MESSENGERS, null))
     }
 
+    /** "Save discarded photo" is greyed out while the limit is "never" and wakes with a time (G-007). */
+    @Test
+    fun theSaveDiscardedRowFollowsTheLimit() {
+        val save = UiSelector().text("Save discarded photo")
+        UiScrollable(UiSelector().scrollable(true)).scrollIntoView(save)
+        assertEquals("never: nothing to save", false, device.findObject(save).isEnabled)
+        tap(UiSelector().text("Discard unsent photo after"))
+        device.wait(Until.findObject(By.text("2 hours")), TIMEOUT).click()
+        waitUntil("limit stored") { prefs.getString(Keys.DISCARD_AFTER, null) == "120" }
+        UiScrollable(UiSelector().scrollable(true)).scrollIntoView(save)
+        assertEquals(true, device.findObject(save).isEnabled)
+        assertEquals(true, device.findObject(UiSelector().textStartsWith("2 hours. A photo")).exists())
+    }
+
     @Test
     fun theColourDialogStoresOnlyOnSave() {
         tap(UiSelector().text("Edit colours").instance(0))

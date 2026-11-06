@@ -52,6 +52,41 @@
     <string name="pref_default_ev_summary">The camera opens at it; tap the EV label to return to it.</string>
     <string name="pref_save_gallery">Save to gallery when sent</string>
     <string name="pref_save_gallery_summary">Sending a photo also keeps a copy in Pictures/Report Cam. The Save button on the review screen saves without sending. A photo is never saved twice.</string>
+    <string name="pref_discard_after">Discard unsent photo after</string>
+    <string name="pref_discard_after_summary">%s. A photo still in review that long after it was taken is dropped when the app next opens.</string>
+    <string name="pref_discard_never_summary">Never: a photo stays in review until it is sent or retaken.</string>
+    <string-array name="discard_after_labels">
+        <item>1 minute</item>
+        <item>3 minutes</item>
+        <item>5 minutes</item>
+        <item>10 minutes</item>
+        <item>15 minutes</item>
+        <item>30 minutes</item>
+        <item>1 hour</item>
+        <item>2 hours</item>
+        <item>4 hours</item>
+        <item>6 hours</item>
+        <item>8 hours</item>
+        <item>12 hours</item>
+        <item>Never</item>
+    </string-array>
+    <string-array name="discard_after_values" translatable="false">
+        <item>1</item>
+        <item>3</item>
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+        <item>120</item>
+        <item>240</item>
+        <item>360</item>
+        <item>480</item>
+        <item>720</item>
+        <item></item>
+    </string-array>
+    <string name="pref_save_discarded">Save discarded photo</string>
+    <string name="pref_save_discarded_summary">A dropped photo goes to Pictures/Report Cam first, unless it is there already. One still waiting for location is stamped without it.</string>
     <string name="pref_caption">Send the stamp text as a message</string>
     <string name="pref_text_editing">Edit Note and Message in review</string>
     <string name="pref_text_editing_summary">Off: the texts show in review but cannot be changed there.</string>

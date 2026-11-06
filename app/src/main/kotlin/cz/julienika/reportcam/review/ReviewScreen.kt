@@ -73,6 +73,9 @@ class ReviewScreen(
     private val afterRedraw = mutableListOf<(ReviewState.Ready) -> Unit>()
 
     private val versions = PhotoVersions(sharedDir, places)
+
+    /** A kept photo past the Settings limit is dropped, saved first if asked (G-007, D032). */
+    private val expiry = Expiry.forReview(store, versions, activity.applicationContext, ::displayEdge)
     private val texts = ReviewTexts(ui) { redraw() }
     private val stampButtons = StampButtons(ui.stampRow, { redraw(placement = it) }, { redraw(scheme = it) })
     private val quick =
@@ -119,8 +122,26 @@ class ReviewScreen(
     val hasSaved: Boolean get() = store.exists()
 
     /**
+     * True when the photo under review was taken longer ago than Settings allow (G-007); [restore] then drops
+     * it from the disk copy, which is current: a waiting photo is written at the shutter, a stamped one when stamped
+     * and at every stop.
+     */
+    fun isExpired(
+        settings: AppSettings,
+        nowMillis: Long,
+    ): Boolean {
+        val taken =
+            when (val s = state) {
+                is ReviewState.Ready -> s.captureTime
+                is ReviewState.Waiting -> s.data[StampKeys.CAPTURE_TIME]
+                else -> null
+            }
+        return taken != null && Expiry.expired(taken, nowMillis, settings.keepFor)
+    }
+
+    /**
      * Reads the kept photo back: a stamped one returns to review as it was left, a waiting one resumes its
-     * wait. A broken entry is dropped.
+     * wait. One past the Settings limit is dropped instead (G-007), and a broken entry too.
      */
     fun restore(settings: AppSettings) {
         enter(settings)
@@ -128,7 +149,15 @@ class ReviewScreen(
         ui.busy.isVisible = true
         val token = generation
         val displayEdge = displayEdge()
+        val now = System.currentTimeMillis()
         activity.lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) { expiry.discardIfExpired(settings, now) }
+            if (token != generation) return@launch // the user left meanwhile
+            if (outcome != Expiry.Outcome.KEPT) {
+                toast(if (outcome == Expiry.Outcome.DROPPED_AND_SAVED) R.string.discarded_saved else R.string.discarded)
+                leave()
+                return@launch
+            }
             val stamped =
                 withContext(Dispatchers.IO) {
                     try {

@@ -5,11 +5,9 @@ A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept l
 
 ## Current state
 
-G-001, G-002 and G-003 are done and signed off (archived in `docs/goals-archive.md`). G-004 is active: M1 (Note row,
-hash-named versions), M2 (compact text fields), M3 (two-column frame) and M4 (icons, release 0.4.0) are done;
-it waits for the Owner's sign-off. G-005 (quick stamp row) is active: M1 (per-photo position, D029) and
-M2 (the row on the review, D030), M3 (its Settings ticks, the Note/Message settings, D031) and M4 (release
-0.5.0) are done; it waits for the Owner's sign-off.
+G-001 to G-005 are done and signed off (archived in `docs/goals-archive.md`). G-007 (discard an unsent photo
+after a set time) is active: M1 (the feature, D032) is done; M2 (release 0.6.0) is next. G-006 (Google Play
+release 1.0.0) is accepted and runs after G-007.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -46,6 +44,11 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   or by the Save button; a retake without sending leaves none.
 - A stamped, unsent photo is kept on disk with its camera JPEG, stamp facts, scheme, note, message, both switches and saved versions (D015) and came back after
   `am force-stop`; sending, Retake or a new shot drops it.
+- Discard after a time (G-007, D032): Settings' "Discard unsent photo after" (1 min to 12 h, default never) and "Save
+  discarded photo" (off). A kept photo older than the limit is dropped at a cold start or on coming back to the app,
+  with a toast; with the switch on a stamped one goes to the gallery once under its shared name, a waiting one is
+  stamped with "Location unavailable" first. Seen on the emulator in the instrumented tests, including a real
+  one-minute wait in the background.
 - Photo shape (D009): full frame, 1:1, 4:5, 2:3 or 9:16, short:long following how the phone is held; centre-cropped
   before stamping. The preview shows the whole sensor frame and dims what the crop will cut away.
 - Stamp: settings text, date/time, coordinates with accuracy, approximate and age marks; overlay or frame. The
@@ -72,10 +75,11 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
   switching location off or denying it keeps it waiting and says so.
 - Sharing: chooser verified; quick buttons hand the photo to the messenger's package with `ACTION_SEND`.
 - Camera controls: tap-to-focus and exposure seen working; pinch zoom not testable through adb.
-- Tests: 166/166 unit, 46/46 instrumented in 10 suites, none skipped (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
+- Tests: 175/175 unit, 52/52 instrumented in 11 suites, none skipped (shoot → review → share; the settings slider and segments; deferred location through mock providers, including
   restart; square crop; the real geocoder, skipped offline; message, one-copy rule, stamped-photo restore, redraw, version reuse and its restore; the note row: redraw on Done,
   switch, message following, send while typing, restart; compact fields: tap, Done, focus leaving, setting change; frame columns drawn left and right; the position redraw kept across a restart; the named two-button row; the
-  quick tiles in Settings; review texts read only, without switches, and hidden). The emulator camera currently runs at about
+  quick tiles in Settings; review texts read only, without switches, and hidden; the discard limit: stamped and waiting photos past it, saved or not, one
+  within it, the foreground return after a real minute, and the Settings row that follows the limit). The emulator camera currently runs at about
   1 frame/s, so `DeferredLocationTest` cases take 47–215 s each; they pass.
 - Icons (D028): Retake, Save to gallery and Share carry an icon before the label, tinted
   to the button text; the Settings corner chips show only their icon (named for TalkBack), the frame chips icon and
@@ -87,7 +91,7 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
   1.9–2.9 s, 0.2.2 2.2–3.3 s, so no regression. Both are slower than G-001's 0.55–0.89 s because the emulator is.
 
-On a real phone the Owner tested 0.3.1 and approved it (2026-11-04); 0.4.0 and 0.5.0 are not yet tested there. Not measured by us there: the place-name
+On a real phone the Owner tested 0.3.1 and approved it (2026-11-04) and signed off 0.4.0 and 0.5.0 (2026-11-06). Not measured by us there: the place-name
 format Google returns, each messenger's message handling, pinch zoom, startup times.
 
 ## How things fit together
@@ -97,6 +101,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
   (Restoring / Waiting / Stamping / Ready, a generation counter drops stamps for abandoned photos);
   `PendingLocation` holds its pure rules, `ShareButtons` the quick-button layout rule, and `PendingStore` the on-disk
   copy in `filesDir/pending`: a waiting photo, or a stamped one with its source JPEG and ready entry (`review/ReadyMeta`), never both;
+  `review/Expiry` drops the kept entry past the Settings limit before it is read back (D032);
   `location/PlaceLookup` the geocoder call made inside the stamp step.
   Settings is a separate AppCompat activity: `settings/ui/` holds one `Preference` subclass per control on the
   shared `pref_widget_row` layout, and `CardDecoration` draws each category as a card (D021). `review/ReviewPalette`
@@ -141,8 +146,9 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 ## Next steps and open questions
 
-- G-004: done, awaiting the Owner's sign-off on 0.4.0.
-- G-005: done, awaiting the Owner's sign-off on 0.5.0.
+- G-007 M2: release 0.6.0 (code 10) to the Owner on Telegram, push.
+- G-006: M1 to M4 after G-007; every Play Console upload is the Owner's (its GOALS.md entry lists their part).
+- `ReviewScreen` is at the 500-line guideline (504); the next goal touching it splits the restore path out.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
 

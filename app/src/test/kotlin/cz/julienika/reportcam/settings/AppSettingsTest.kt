@@ -80,6 +80,19 @@ class AppSettingsTest {
     }
 
     @Test
+    fun aPhotoIsKeptForeverByDefaultAndOnlyAnOfferedLimitDropsIt() {
+        val s = AppSettings.from(FakeSource())
+        assertNull("never, so 0.5 behaviour is unchanged (G-007)", s.keepFor)
+        assertFalse(s.saveDiscarded)
+        assertEquals(java.time.Duration.ofMinutes(1), AppSettings.from(FakeSource(Keys.DISCARD_AFTER to "1")).keepFor)
+        assertEquals(java.time.Duration.ofHours(12), AppSettings.from(FakeSource(Keys.DISCARD_AFTER to "720")).keepFor)
+        for (bad in listOf("", "0", "7", "-60", "forever")) {
+            assertNull("'$bad' keeps the photo", AppSettings.from(FakeSource(Keys.DISCARD_AFTER to bad)).keepFor)
+        }
+        assertTrue(AppSettings.from(FakeSource(Keys.SAVE_DISCARDED to true)).saveDiscarded)
+    }
+
+    @Test
     fun messageCanBeSwitchedOff() {
         assertFalse(AppSettings.from(FakeSource(Keys.MESSAGE to false)).message)
     }

@@ -152,6 +152,18 @@ class PendingStoreTest {
     }
 
     @Test
+    fun theCaptureTimeComesFromWhicheverEntryLives() {
+        val s = store()
+        assertNull(s.captureTime())
+        s.save(CapturedJpeg(bytes, 0), meta.copy(captureTime = meta.captureTime.minusHours(2)))
+        assertEquals(meta.captureTime.minusHours(2), s.captureTime())
+        s.saveReady(stampedFile(), source, ready)
+        assertEquals(facts.captureTime, s.captureTime())
+        s.clear()
+        assertNull(s.captureTime())
+    }
+
+    @Test
     fun aStampedEntryNamingAPathIsDropped() {
         val s = store()
         s.saveReady(stampedFile(), source, ready.copy(fileName = "../../shared_prefs/x.xml"))

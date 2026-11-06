@@ -10,7 +10,9 @@ Nothing runs in the background, and the camera is open only while the live previ
   counts as precise (5–50 m, default 20 m), place name (street address through Android's Geocoder, off by
   default) and whether coordinates print beside it, wait for precise location, stamp corner, frame border width
   and size, the dark and light stamp schemes (colours and transparency, edited in a dialog with live previews),
-  photo shape and size (small by default), default exposure, saving to the gallery when sent, the message
+  photo shape and size (small by default), default exposure, saving to the gallery when sent, how long an
+  unsent photo is kept (1 minute to 12 hours, or forever; a stale one is dropped when the app next opens, with
+  an optional copy to the gallery first), the message
   switch's starting state, the quick send buttons (WhatsApp, Telegram, Messenger, Discord, Slack, Snapchat,
   Instagram; only installed ones show), and the app theme (system, light or dark).
 - The marker at top left shows the location state; tap it to allow location. Tap the preview to focus,

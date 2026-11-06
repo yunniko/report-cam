@@ -160,6 +160,19 @@
             app:key="save_gallery"
             app:summary="@string/pref_save_gallery_summary"
             app:title="@string/pref_save_gallery" />
+        <ListPreference
+            app:defaultValue=""
+            app:entries="@array/discard_after_labels"
+            app:entryValues="@array/discard_after_values"
+            app:iconSpaceReserved="false"
+            app:key="discard_after"
+            app:title="@string/pref_discard_after" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="save_discarded"
+            app:summary="@string/pref_save_discarded_summary"
+            app:title="@string/pref_save_discarded" />
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:iconSpaceReserved="false"

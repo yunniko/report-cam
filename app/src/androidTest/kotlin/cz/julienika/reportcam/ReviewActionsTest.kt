@@ -5,7 +5,6 @@ import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.provider.MediaStore
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -19,7 +18,10 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import cz.julienika.reportcam.helpers.assertGalleryCopies
 import cz.julienika.reportcam.helpers.canSend
+import cz.julienika.reportcam.helpers.deleteGalleryCopies
+import cz.julienika.reportcam.helpers.galleryCopies
 import cz.julienika.reportcam.helpers.keptState
 import cz.julienika.reportcam.helpers.lastSend
 import cz.julienika.reportcam.helpers.pendingDir
@@ -77,10 +79,7 @@ class ReviewActionsTest {
         runCatching { Intents.release() }
         PreferenceManager.getDefaultSharedPreferences(context).edit().clear().commit()
         pendingDir.deleteRecursively()
-        // The app owns its gallery rows, so it may remove the ones these tests made.
-        for (name in savedNames) {
-            context.contentResolver.delete(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "${MediaStore.Images.Media.DISPLAY_NAME}=?", arrayOf(name))
-        }
+        context.deleteGalleryCopies(savedNames)
     }
 
     private fun ActivityScenario<CameraActivity>.shootAndStamp() = shootAndStamp(pendingDir)
@@ -89,27 +88,12 @@ class ReviewActionsTest {
 
     private fun keptFileName(): String = keptState().getProperty("file")!!.also { savedNames += it }
 
-    private fun galleryCopies(name: String): Int =
-        context.contentResolver
-            .query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                arrayOf(MediaStore.Images.Media._ID),
-                "${MediaStore.Images.Media.DISPLAY_NAME}=?",
-                arrayOf(name),
-                null,
-            )!!
-            .use { it.count }
+    private fun galleryCopies(name: String): Int = context.galleryCopies(name)
 
-    /** Waits for the gallery writes in flight, then checks no more arrive. */
     private fun assertCopies(
         expected: Int,
         name: String,
-    ) {
-        val end = System.currentTimeMillis() + 5_000
-        while (galleryCopies(name) < expected && System.currentTimeMillis() < end) Thread.sleep(100)
-        Thread.sleep(1_000)
-        assertEquals("gallery copies of $name", expected, galleryCopies(name))
-    }
+    ) = context.assertGalleryCopies(expected, name)
 
     /** Needs the stand-in messengers (`stub-messenger/`) for WhatsApp and Telegram. */
     @Test

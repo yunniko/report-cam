@@ -31,3 +31,4 @@
 - D029 — A position picked on the review changes that photo only — active
 - D030 — The review's stamp row is built from Settings ticks by one pure rule — active
 - D031 — Two Settings switches shape the review's Note and Message rows — active
+- D032 — An unsent photo past the Settings limit is dropped at the next start, never by a timer — active

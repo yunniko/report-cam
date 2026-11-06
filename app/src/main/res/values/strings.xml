@@ -40,6 +40,8 @@ Now: %1$s</string>
     <string name="stamp_minutes_old">%1$d min old</string>
     <string name="stamp_hours_old">%1$d h old</string>
     <string name="gallery_failed">Could not save to the gallery.</string>
+    <string name="discarded">Unsent photo discarded.</string>
+    <string name="discarded_saved">Unsent photo discarded and saved to the gallery.</string>
     <string name="exposure">Exposure</string>
     <string name="zoom_label">%1$.1f×</string>
     <string name="exposure_label">EV %1$+.1f</string>

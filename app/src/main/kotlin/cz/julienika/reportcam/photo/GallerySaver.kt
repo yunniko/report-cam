@@ -11,16 +11,20 @@ import java.io.File
 object GallerySaver {
     private const val ALBUM = "Report Cam"
 
-    /** Returns false if the gallery refused the write; the shared copy in the cache is unaffected. */
+    /**
+     * Returns false if the gallery refused the write; the shared copy in the cache is unaffected. The gallery
+     * row is named [displayName]: the file's own name, or the shared name of a kept copy (G-007).
+     */
     fun save(
         context: Context,
         file: File,
         takenAtMillis: Long,
+        displayName: String = file.name,
     ): Boolean {
         val resolver = context.contentResolver
         val values =
             ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
+                put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
                 put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                 put(MediaStore.Images.Media.DATE_TAKEN, takenAtMillis)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -32,7 +36,7 @@ object GallerySaver {
                     val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), ALBUM)
                     dir.mkdirs()
                     @Suppress("DEPRECATION")
-                    put(MediaStore.Images.Media.DATA, File(dir, file.name).absolutePath)
+                    put(MediaStore.Images.Media.DATA, File(dir, displayName).absolutePath)
                 }
             }
         val uri =

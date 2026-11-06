@@ -92,6 +92,18 @@ class PendingStore(
         check(tmp.renameTo(meta)) { "could not finish saving the waiting photo" }
     }
 
+    /**
+     * When the kept photo, stamped or waiting, was taken; null when there is none or its state does not read.
+     * Reads the small state file only, so a start can ask before the pixels are loaded (G-007).
+     */
+    @Synchronized
+    fun captureTime(): ZonedDateTime? =
+        when {
+            hasReady() -> readProperties(ready)?.let(ReadyMeta::fromProperties)?.captureTime
+            hasWaiting() -> readProperties(meta)?.let(PendingMeta::fromProperties)?.captureTime
+            else -> null
+        }
+
     @Synchronized
     fun load(): Pair<CapturedJpeg, PendingMeta>? {
         if (!hasWaiting()) return null

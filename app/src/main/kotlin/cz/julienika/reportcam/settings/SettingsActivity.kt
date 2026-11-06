@@ -11,6 +11,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
@@ -77,6 +78,25 @@ class SettingsActivity : AppCompatActivity() {
             // Applying the mode recreates this screen in the new theme.
             findPreference<Preference>(Keys.APP_THEME)?.setOnPreferenceChangeListener { _, value ->
                 (requireActivity() as AppCompatActivity).delegate.localNightMode = AppTheme.of(value as? String).nightMode
+                true
+            }
+            bindDiscardRows()
+        }
+
+        /**
+         * "Save discarded photo" means nothing while the limit is "never", so it is enabled only with a time (G-007).
+         * Done here, not with `app:dependency`: a ListPreference never disables its dependents on an empty value.
+         */
+        private fun bindDiscardRows() {
+            val limit = findPreference<ListPreference>(Keys.DISCARD_AFTER) ?: return
+            val save = findPreference<Preference>(Keys.SAVE_DISCARDED)
+            limit.summaryProvider =
+                Preference.SummaryProvider<ListPreference> { p ->
+                    if (p.value.isNullOrEmpty()) getString(R.string.pref_discard_never_summary) else getString(R.string.pref_discard_after_summary, p.entry)
+                }
+            save?.isEnabled = !limit.value.isNullOrEmpty()
+            limit.setOnPreferenceChangeListener { _, value ->
+                save?.isEnabled = (value as? String).orEmpty().isNotEmpty()
                 true
             }
         }

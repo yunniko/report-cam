@@ -23,6 +23,7 @@ import cz.julienika.reportcam.stamp.StampScheme
 import cz.julienika.reportcam.stamp.StampSpec
 import cz.julienika.reportcam.stamp.StampStyle
 import cz.julienika.reportcam.stamp.TextField
+import java.time.Duration
 
 /** Read access to stored settings, so the mapping below is unit-tested without Android. */
 interface SettingsSource {
@@ -88,6 +89,9 @@ object Keys {
     const val ASPECT = "aspect_ratio"
     const val DEFAULT_EV = "default_ev"
     const val SAVE_GALLERY = "save_gallery"
+    /** Minutes a photo may stay in review before the next start drops it (G-007); empty means never. */
+    const val DISCARD_AFTER = "discard_after"
+    const val SAVE_DISCARDED = "save_discarded"
     /** The message switch's default; the key keeps its 0.3 name, "caption". */
     const val MESSAGE = "caption"
     const val COMPACT_TEXTS = "compact_texts"
@@ -119,6 +123,9 @@ object Keys {
     /** Off by default: existing stamps keep their look until the user asks for the day (see D018). */
     const val DEFAULT_SHOW_WEEKDAY = false
 
+    /** The limits offered, in minutes (Owner, 2026-11-06); `preferences.xml` lists the same values, and "" for never. */
+    val DISCARD_CHOICES_MIN: List<Long> = listOf(1, 3, 5, 10, 15, 30, 60, 120, 240, 360, 480, 720)
+
     fun schemeBackground(id: SchemeId) = "scheme_${id.id}_background"
 
     fun schemeText(id: SchemeId) = "scheme_${id.id}_text"
@@ -143,6 +150,10 @@ data class AppSettings(
     val defaultEv: Float,
     /** Save a copy to the gallery when the photo is sent; the review's Save button saves regardless. */
     val saveToGallery: Boolean,
+    /** How long a photo may stay in review before a start drops it (G-007); null keeps it until the user acts. */
+    val keepFor: Duration? = null,
+    /** A dropped photo goes to the gallery first; off by default. */
+    val saveDiscarded: Boolean = false,
     /** The review's message switch starts on: the stamp text goes with the photo (Owner, 2026-11-03). */
     val message: Boolean,
     /** The quick messenger buttons, in [Messenger] order, at most [Messenger.QUICK_MAX]; not yet filtered by installed. */
@@ -219,6 +230,8 @@ data class AppSettings(
                 aspect = AspectRatio.of(s.string(Keys.ASPECT, AspectRatio.FULL.id)),
                 defaultEv = s.string(Keys.DEFAULT_EV, "0").toFloatOrNull()?.coerceIn(-MAX_EV, MAX_EV) ?: 0f,
                 saveToGallery = s.bool(Keys.SAVE_GALLERY, true),
+                keepFor = keepFor(s),
+                saveDiscarded = s.bool(Keys.SAVE_DISCARDED, false),
                 message = s.bool(Keys.MESSAGE, true),
                 quickMessengers = s.stringSet(Keys.QUICK_MESSENGERS, Keys.DEFAULT_QUICK_MESSENGERS).let { ids ->
                     Messenger.entries.filter { it.id in ids }.take(Messenger.QUICK_MAX)
@@ -259,6 +272,10 @@ data class AppSettings(
         private fun preciseWithin(s: SettingsSource): Float =
             s.string(Keys.PRECISE_ACCURACY, "").toFloatOrNull()?.takeIf { it in FixQuality.PRECISE_CHOICES_M }
                 ?: FixQuality.DEFAULT_PRECISE_M
+
+        /** One of the offered limits, else never: a value no build offers must not drop photos. */
+        private fun keepFor(s: SettingsSource): Duration? =
+            s.string(Keys.DISCARD_AFTER, "").toLongOrNull()?.takeIf { it in Keys.DISCARD_CHOICES_MIN }?.let(Duration::ofMinutes)
 
         /** The placement stored as [id], the default for an unknown one; a frame gets [border]. */
         private fun placementOf(
