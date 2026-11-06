@@ -1,13 +1,13 @@
 # report-cam — Handover
-Last verified: 2026-11-06 at 6a7d943
+Last verified: 2026-11-06 at 05bcdcd
 
 A native Android stamp camera for photo reports. Goals are in `GOALS.md`, kept local. Charter: `E:\CLAUDE\COMPANY\`.
 
 ## Current state
 
 G-001 to G-005 are done and signed off (archived in `docs/goals-archive.md`). G-007 (discard an unsent photo
-after a set time) is active: M1 (the feature, D032) is done; M2 (release 0.6.0) is next. G-006 (Google Play
-release 1.0.0) is accepted and runs after G-007.
+after a set time) is complete: 0.6.0 is with the Owner and waits for their sign-off. G-006 (Google Play
+release 1.0.0) is accepted and runs next.
 State on the Pixel 3a API 34 emulator at the commit above (debug build unless marked release):
 - Capture → stamped JPEG (1280 px long edge by default), shown for review between the top bar and the controls.
 - Review screen (G-003 M1, G-004 M1): a Note row (the stamp text, editable for this photo) and a Message row (the text
@@ -84,8 +84,8 @@ State on the Pixel 3a API 34 emulator at the commit above (debug build unless ma
 - Icons (D028): Retake, Save to gallery and Share carry an icon before the label, tinted
   to the button text; the Settings corner chips show only their icon (named for TalkBack), the frame chips icon and
   label. Sources and licenses in README.
-- Release build 0.5.0 (code 9): signed with the D007 key, 1.63 MB, sent to the Owner.
-  `scripts/camera-release-check.sh` on 0.5.0 passes 10/10 with `WAIT=6`; its launch step right after an
+- Release build 0.6.0 (code 10): signed with the D007 key, 1.64 MB, sent to the Owner; its Settings show the two
+  discard rows. `scripts/camera-release-check.sh` on 0.6.0 passes 10/10 twice with `WAIT=6`; its launch step right after an
   install can miss the camera opening on this emulator (1 of 4 runs); at the default 3 s wait the "screen off"
   step can fail, because camera close on this emulator takes 2–5 s.
 - Startup to a streaming preview (last measured on 0.3.0, alternated with 0.2.2, 10 cold starts each): 0.3.0
@@ -146,8 +146,8 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 ## Next steps and open questions
 
-- G-007 M2: release 0.6.0 (code 10) to the Owner on Telegram, push.
-- G-006: M1 to M4 after G-007; every Play Console upload is the Owner's (its GOALS.md entry lists their part).
+- PENDING APPROVAL: the Owner's phone test and sign-off of 0.6.0 (G-007), sent on Telegram 2026-11-06.
+- G-006: M1 to M4 next; every Play Console upload is the Owner's (its GOALS.md entry lists their part).
 - `ReviewScreen` is at the 500-line guideline (504); the next goal touching it splits the restore path out.
 - D009 reads the aspect ratio as following how the phone is held; the Owner may want it fixed instead.
 - Back up the release key folder `.android-keys` in the Windows user profile: updates over 0.1.0 need it (D007).
@@ -156,6 +156,7 @@ format Google returns, each messenger's message handling, pinch zoom, startup ti
 
 | Date | Commit | What changed | How verified |
 |---|---|---|---|
+| 2026-11-06 | 05bcdcd | APK 0.6.0 sent to the Owner: G-007 (discard an unsent photo after a set time, optional gallery copy) | `apksigner verify`; release camera check 10/10 twice; release Settings on the emulator; unit 175/175, instrumented 52/52 |
 | 2026-11-04 | 9db3bc8 | APK 0.5.0 sent to the Owner: G-005 (quick stamp row, its Settings ticks, Note/Message settings) | `apksigner verify`; release camera check 10/10 twice after one launch-timing miss; unit 166/166, instrumented 46/46 |
 | 2026-11-04 | 2a30319 | APK 0.4.0 sent to the Owner: G-004 (Note row, hash-named versions, compact fields, two-column frame, icons) | `apksigner verify`; release camera check 10/10 twice; release review and Settings on the emulator; unit 153/153, instrumented 40/40 |
 | 2026-11-04 | 0731ad0 | APK 0.3.1 sent to the Owner: G-003 M5 phone-test fixes (brand-coloured quick buttons, icon-only single button, Owner palettes) | `apksigner verify`; release Settings, dialog and review on the emulator; unit 141/141, instrumented 31/31 |
