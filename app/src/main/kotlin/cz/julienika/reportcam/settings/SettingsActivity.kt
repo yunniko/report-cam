@@ -1,11 +1,20 @@
 package cz.julienika.reportcam.settings
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
+import android.net.Uri
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.view.View
+import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
@@ -16,7 +25,10 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
+import cz.julienika.reportcam.BuildConfig
 import cz.julienika.reportcam.R
+import cz.julienika.reportcam.about.Licences
+import cz.julienika.reportcam.about.PlainMarkdown
 import cz.julienika.reportcam.location.LocationAccess
 import cz.julienika.reportcam.location.LocationPermissions
 import cz.julienika.reportcam.location.LocationTracker
@@ -81,6 +93,58 @@ class SettingsActivity : AppCompatActivity() {
                 true
             }
             bindDiscardRows()
+            bindAboutRows()
+        }
+
+        /** The About card (G-006): version, the privacy policy and licences in dialogs, the source link. */
+        private fun bindAboutRows() {
+            findPreference<Preference>(KEY_VERSION)?.summary = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+            findPreference<Preference>(KEY_PRIVACY)?.setOnPreferenceClickListener {
+                textDialog(R.string.pref_privacy, policyText(), getString(R.string.privacy_policy_url))
+                true
+            }
+            findPreference<Preference>(KEY_LICENCES)?.setOnPreferenceClickListener {
+                textDialog(R.string.pref_licences, Licences.notice(::readAsset), null)
+                true
+            }
+            findPreference<Preference>(KEY_SOURCE)?.setOnPreferenceClickListener {
+                open(getString(R.string.source_url))
+                true
+            }
+        }
+
+        private fun readAsset(name: String) = requireContext().assets.open(name).bufferedReader().use { it.readText() }
+
+        private fun policyText(): CharSequence =
+            SpannableStringBuilder().apply {
+                for (line in PlainMarkdown.render(readAsset(ASSET_POLICY))) {
+                    val start = length
+                    append(line.text).append('\n')
+                    if (line.heading) setSpan(StyleSpan(Typeface.BOLD), start, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
+
+        /** A scrolling text dialog; with [url], a neutral button opens the same text online. */
+        private fun textDialog(
+            title: Int,
+            text: CharSequence,
+            url: String?,
+        ) {
+            AlertDialog
+                .Builder(requireContext())
+                .setTitle(title)
+                .setMessage(text)
+                .setPositiveButton(R.string.about_close, null)
+                .apply { if (url != null) setNeutralButton(R.string.about_open_online) { _, _ -> open(url) } }
+                .show()
+        }
+
+        private fun open(url: String) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } catch (e: ActivityNotFoundException) {
+                Toast.makeText(requireContext(), R.string.about_no_browser, Toast.LENGTH_SHORT).show()
+            }
         }
 
         /**
@@ -160,6 +224,11 @@ class SettingsActivity : AppCompatActivity() {
 
         private companion object {
             const val KEY_PERMISSION = "location_permission"
+            const val KEY_VERSION = "about_version"
+            const val KEY_PRIVACY = "about_privacy"
+            const val KEY_LICENCES = "about_licences"
+            const val KEY_SOURCE = "about_source"
+            const val ASSET_POLICY = "privacy-policy.md"
             val LOCATION_KEYS = listOf(Keys.SHOW_LOCATION, Keys.COORD_FORMAT, Keys.PRECISE_ACCURACY, Keys.WAIT_PRECISE)
         }
     }

@@ -14,7 +14,9 @@ Nothing runs in the background, and the camera is open only while the live previ
   unsent photo is kept (1 minute to 12 hours, or forever; a stale one is dropped when the app next opens, with
   an optional copy to the gallery first), the message
   switch's starting state, the quick send buttons (WhatsApp, Telegram, Messenger, Discord, Slack, Snapchat,
-  Instagram; only installed ones show), and the app theme (system, light or dark).
+  Instagram; only installed ones show), the app theme (system, light or dark), and an About card with the
+  version, the privacy policy (`docs/privacy-policy.md`, published from `docs/site/`), the open-source licences
+  and the source link.
 - The marker at top left shows the location state; tap it to allow location. Tap the preview to focus,
   pinch to zoom, use the slider for exposure.
 - A stamped photo not yet sent comes back after the app is closed, with its note and message.
@@ -54,9 +56,9 @@ follow the app theme; the live camera view is always black. The stamp style is c
   The logos are trademarks of their owners and are used only to label the send buttons.
 - `ic_save.xml`, `ic_retake.xml`, `ic_share.xml`, `ic_pos_*.xml` (stamp corners): OpenSearch UI icons
   (https://icon-sets.iconify.design/oui/), Apache License 2.0.
-- `ic_frame_bottom.xml`, `ic_frame_top.xml`: css.gg "polaroid" (https://icon-sets.iconify.design/gg/), MIT License;
-  the top-frame icon is the same drawing turned 180 degrees.
 - `ic_scheme_dark.xml`, `ic_scheme_light.xml`: Material Symbols "dark-mode" and "light-mode"
   (https://icon-sets.iconify.design/material-symbols/), Google, Apache License 2.0.
-- The launcher icon is original artwork.
+- The launcher icon and the frame icons (`ic_frame_bottom.xml`, `ic_frame_top.xml`) are original artwork (D034).
+- Libraries: AndroidX (including CameraX) and kotlinx.coroutines, Apache License 2.0. The app's Settings → About →
+  Open-source licences lists all of the above with the licence texts (`about/Licences.kt`).
 - `preview_photo.jpg` (the colour dialog's preview): the Owner's own photo of Český Krumlov, cropped, metadata stripped.

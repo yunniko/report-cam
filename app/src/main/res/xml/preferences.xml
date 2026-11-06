@@ -223,4 +223,28 @@
             app:summary="@string/pref_app_theme_summary"
             app:title="@string/pref_app_theme" />
     </PreferenceCategory>
+
+    <!-- Rows without a stored value; SettingsActivity fills the version and opens the dialogs and links. -->
+    <PreferenceCategory app:title="@string/pref_cat_about" app:iconSpaceReserved="false">
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="about_version"
+            app:selectable="false"
+            app:title="@string/pref_version" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="about_privacy"
+            app:summary="@string/pref_privacy_summary"
+            app:title="@string/pref_privacy" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="about_licences"
+            app:summary="@string/pref_licences_summary"
+            app:title="@string/pref_licences" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="about_source"
+            app:summary="@string/source_url"
+            app:title="@string/pref_source" />
+    </PreferenceCategory>
 </PreferenceScreen>
